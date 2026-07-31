@@ -1,0 +1,38 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Validação das fontes{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>Validação das fontes</h1>
+    {% if payload %}
+        <p class="muted">Coleta: {{ payload.collected_at }} · Duração: {{ payload.duration_ms }} ms</p>
+        <div class="source-list">
+        {% for name, status in source_status.items %}
+            <article class="source-row">
+                <div>
+                    <strong>{{ name }}</strong>
+                    <small>{{ status.fetched_at }}</small>
+                </div>
+                <div class="source-meta">
+                    <span class="pill {% if status.complete %}ok{% elif status.ok %}partial{% else %}error{% endif %}">{% if status.complete %}COMPLETA{% elif status.ok %}PARCIAL{% else %}FALHA{% endif %}</span>
+                    <span>{{ status.quote_count }} cotações</span>
+                    <span>{{ status.duration_ms }} ms</span>
+                </div>
+                {% if status.error %}<p class="error-text">{{ status.error }}</p>{% endif %}
+                {% if status.metadata.corrected_change_symbols %}
+                    <p class="muted">Sinais corrigidos após validação pelos preços: {{ status.metadata.corrected_change_symbols|join:", " }}.</p>
+                {% endif %}
+                {% if status.metadata.price_reference_mismatch_symbols %}
+                    <p class="error-text">Fechamento anterior incompatível para validação: {{ status.metadata.price_reference_mismatch_symbols|join:", " }}. O percentual da página foi preservado.</p>
+                {% endif %}
+            </article>
+        {% endfor %}
+        </div>
+    {% else %}
+        <div class="message warning">Nenhuma coleta foi persistida. O sistema não criou valores substitutos.</div>
+    {% endif %}
+</section>
+<section class="panel">
+    <h2>Inspeção técnica</h2>
+    <p>Abra o <a href="{% url 'dashboard:api_raw_snapshot' %}" target="_blank" rel="noopener">snapshot JSON bruto</a> para conferir valor, horário, fonte e URL de cada observação.</p>
+</section>
+{% endblock %}

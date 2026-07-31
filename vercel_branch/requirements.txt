@@ -6,3 +6,4 @@ curl-cffi>=0.11,<0.17
 whitenoise>=6.9,<7
 holidays>=0.70,<1
 feedparser>=6.0,<7
+python-dotenv>=1.0,<2

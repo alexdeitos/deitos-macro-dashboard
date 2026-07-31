@@ -1,0 +1,20 @@
+Validação do card adicional de cálculo macro
+
+Implementado:
+- Fórmula: (-VIX) + minério de ferro (FEF) + petróleo WTI (CL1)
+- Faixas: <1,5 lateral; 1,5–2,5 fraca; 2,5–4,5 moderada; >4,5 forte
+- Direção positiva: abertura compradora
+- Direção negativa: abertura vendedora
+- Contexto separado: S&P 500, Dow Jones, Nasdaq, DXY e EWZ
+- Ausência de WTI/FEF/VIX resulta em N/D, sem fallback silencioso
+- Card inserido acima da análise WIN/WDO existente
+
+Validações executadas:
+- Compilação Python: OK
+- Sintaxe JavaScript (node --check): OK
+- Exemplo da referência: -8,38 -0,81 +3,46 = -5,73: OK
+- Exemplo positivo: +5,11 +0,15 +4,07 = +9,33: OK
+- Dados ausentes impedem o cálculo: OK
+
+Limitação:
+- Agenda econômica 3 estrelas ainda não possui fonte integrada e não entra no score.

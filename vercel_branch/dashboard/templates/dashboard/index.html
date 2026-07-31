@@ -1,0 +1,271 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="dashboard-layout">
+    <aside class="news-sidebar" aria-label="Radar lateral de mercado">
+        <div class="news-sidebar-header">
+            <div>
+                <span class="news-eyebrow">Radar de mercado</span>
+                <h2>Notícias e agenda</h2>
+            </div>
+            <button id="newsRefreshButton" class="news-refresh-button" type="button" title="Atualizar notícias" aria-label="Atualizar notícias">↻</button>
+        </div>
+
+        <div class="sidebar-tabs" role="tablist" aria-label="Conteúdo lateral">
+            <button id="newsTabButton" class="sidebar-tab active" type="button" role="tab" aria-selected="true" aria-controls="newsPanel" data-sidebar-tab="news">Notícias</button>
+            <button id="calendarTabButton" class="sidebar-tab" type="button" role="tab" aria-selected="false" aria-controls="calendarPanel" data-sidebar-tab="calendar">Calendário</button>
+        </div>
+
+        <section id="newsPanel" class="sidebar-panel active" role="tabpanel" aria-labelledby="newsTabButton" data-sidebar-panel="news">
+            <div id="newsStatus" class="news-status muted">Carregando notícias...</div>
+            <div class="news-filters" role="group" aria-label="Filtrar notícias">
+                <button class="news-filter active" type="button" data-news-filter="ALL">Todas</button>
+                <button class="news-filter" type="button" data-news-filter="WIN">WIN</button>
+                <button class="news-filter" type="button" data-news-filter="WDO">WDO</button>
+                <button class="news-filter" type="button" data-news-filter="MACRO">Macro</button>
+            </div>
+            <div id="newsList" class="news-list" aria-live="polite">
+                <div class="news-empty">Aguardando a primeira coleta.</div>
+            </div>
+            <div class="news-sidebar-footer">
+                Manchetes e links via RSS. Relevância é contextual e não representa sinal automático.
+            </div>
+        </section>
+
+        <section id="calendarPanel" class="sidebar-panel calendar-panel" role="tabpanel" aria-labelledby="calendarTabButton" data-sidebar-panel="calendar" hidden>
+            <div class="calendar-intro">
+                <div>
+                    <strong>Calendário econômico</strong>
+                    <span>Trading Economics · Brasil, EUA, China e Zona do Euro · horário de Brasília.</span>
+                </div>
+                <button id="calendarRefreshButton" class="calendar-refresh-button" type="button" title="Atualizar calendário" aria-label="Atualizar calendário">↻</button>
+            </div>
+            <div id="calendarStatus" class="calendar-status muted">Carregando calendário...</div>
+            <div class="calendar-controls" aria-label="Filtros do calendário">
+                <div class="calendar-country-filters" role="group" aria-label="País">
+                    <button class="calendar-filter active" type="button" data-calendar-country="ALL">Todos</button>
+                    <button class="calendar-filter" type="button" data-calendar-country="BR">BR</button>
+                    <button class="calendar-filter" type="button" data-calendar-country="US">EUA</button>
+                    <button class="calendar-filter" type="button" data-calendar-country="CN">China</button>
+                    <button class="calendar-filter" type="button" data-calendar-country="EA">Euro</button>
+                </div>
+                <div class="calendar-impact-filters" role="group" aria-label="Impacto mínimo">
+                    <button class="calendar-impact" type="button" data-calendar-importance="1">★+</button>
+                    <button class="calendar-impact active" type="button" data-calendar-importance="2">★★+</button>
+                    <button class="calendar-impact" type="button" data-calendar-importance="3">★★★</button>
+                </div>
+            </div>
+            <div id="calendarList" class="calendar-list" aria-live="polite">
+                <div class="calendar-empty">Aguardando a primeira coleta.</div>
+            </div>
+            <div class="calendar-footer">
+                Fonte: <a href="https://tradingeconomics.com/calendar" target="_blank" rel="nofollow noopener noreferrer">Trading Economics</a>. Coleta pública em intervalos controlados; os horários podem sofrer alterações.
+            </div>
+        </section>
+    </aside>
+
+    <div class="dashboard-main">
+<section class="toolbar">
+    <div>
+        <div id="collectionStatus" class="status neutral">Aguardando dados</div>
+        <div id="lastUpdate" class="muted">Nenhuma coleta carregada.</div>
+    </div>
+    <button id="refreshButton" class="button" type="button">Atualizar fontes agora</button>
+</section>
+
+<div id="message" class="message" hidden></div>
+
+<section class="cards" id="quoteCards">
+    <article class="card"><span>USD/BRL</span><strong id="qUSD_BRL">N/D</strong><small id="cUSD_BRL">Fonte indisponível</small></article>
+    <article class="card"><span>Paridade REAL / EUR-USD</span><strong id="qREAL_EUR_USD_PARITY">N/D</strong><small id="cREAL_EUR_USD_PARITY">Aguardando EUR/BRL e EUR/USD</small></article>
+    <article class="card"><span>Dólar futuro</span><strong id="qDOL_FUT">N/D</strong><small id="cDOL_FUT">Fonte indisponível</small></article>
+    <article class="card"><span>DXY</span><strong id="qDXY">N/D</strong><small id="cDXY">Fonte indisponível</small></article>
+    <article class="card"><span>Ibovespa</span><strong id="qIBOV">N/D</strong><small id="cIBOV">Fonte indisponível</small></article>
+    <article class="card"><span>EWZ</span><strong id="qEWZ">N/D</strong><small id="cEWZ">Fonte indisponível</small></article>
+    <article class="card"><span>VIX</span><strong id="qVIX">N/D</strong><small id="cVIX">Fonte indisponível</small></article>
+    <article class="card"><span>Brent</span><strong id="qBRENT">N/D</strong><small id="cBRENT">Fonte indisponível</small></article>
+    <article class="card"><span>Minério</span><strong id="qIRON_ORE">N/D</strong><small id="cIRON_ORE">Fonte indisponível</small></article>
+</section>
+
+<section class="panel macro-opening-panel" id="macroOpeningPanel">
+    <div class="macro-opening-header">
+        <div>
+            <h2>Cálculo macro de abertura — VIX + minério + petróleo</h2>
+            <p class="muted">Modelo adicional: soma direta de VIX invertido, minério de ferro (FEF) e petróleo WTI (CL1). O card abaixo não substitui sua análise WIN/WDO.</p>
+        </div>
+        <div id="macroSnapshot" class="pill partial">Aguardando cálculo</div>
+    </div>
+
+    <div class="macro-opening-grid">
+        <article class="macro-result-card incomplete" id="macroResultCard">
+            <div class="macro-result-top">
+                <div>
+                    <span class="macro-eyebrow">Resultado</span>
+                    <strong id="macroScore" class="macro-score">N/D</strong>
+                </div>
+                <div class="macro-badges">
+                    <span id="macroDirection" class="pill partial">Indisponível</span>
+                    <span id="macroStrength" class="pill partial">Indisponível</span>
+                </div>
+            </div>
+            <div id="macroOpeningBias" class="macro-bias">Dados insuficientes</div>
+            <p id="macroStrategy" class="action-plan">Aguardando VIX, minério e WTI.</p>
+            <div id="macroFormula" class="macro-formula muted">Fórmula: N/D</div>
+        </article>
+
+        <article class="macro-detail-card">
+            <div class="macro-section-title">Contribuições</div>
+            <div id="macroComponents" class="macro-components"></div>
+            <div class="macro-total-row">
+                <span>Total</span>
+                <strong id="macroTotal">N/D</strong>
+            </div>
+        </article>
+
+        <article class="macro-detail-card">
+            <div class="macro-section-title">Overnight · contexto</div>
+            <div id="macroContext" class="macro-context"></div>
+            <div id="macroCalendar" class="macro-calendar muted">Calendário da Trading Economics disponível na lateral; os eventos não entram automaticamente neste cálculo.</div>
+        </article>
+    </div>
+
+    <div id="macroMissing" class="message warning" hidden></div>
+    <div class="macro-bands" aria-label="Faixas do cálculo macro">
+        <span><strong>&lt; 1,5%</strong> lateral</span>
+        <span><strong>1,5%–2,5%</strong> fraca</span>
+        <span><strong>2,5%–4,5%</strong> moderada</span>
+        <span><strong>&gt; 4,5%</strong> forte</span>
+    </div>
+    <div id="macroDisclaimer" class="message warning">Cálculo direcional, não probabilístico.</div>
+</section>
+
+<section class="panel opening-panel">
+    <div class="opening-header">
+        <div>
+            <h2>Análise de abertura — WIN e WDO</h2>
+            <p class="muted">Leitura direcional com os dados reais disponíveis antes da abertura. Não é probabilidade de acerto nem ordem automática.</p>
+        </div>
+        <div id="openingSnapshot" class="pill partial">Aguardando análise</div>
+    </div>
+    <div class="grid two opening-grid">
+        <article class="opening-card" id="winOpeningCard">
+            <div class="opening-title"><span>Mini índice (WIN)</span><strong id="winBias">N/D</strong></div>
+            <div class="score-row"><span>Score direcional</span><strong id="winScore">N/D</strong></div>
+            <div class="score-track"><div id="winScoreBar" class="score-bar"></div><span class="score-center"></span></div>
+            <div id="winConfidence" class="muted">Sem amostra suficiente.</div>
+            <p id="winAction" class="action-plan">Aguardando dados.</p>
+            <div id="winOpeningComponents" class="component-list compact"></div>
+        </article>
+        <article class="opening-card" id="wdoOpeningCard">
+            <div class="opening-title"><span>Mini dólar (WDO)</span><strong id="wdoBias">N/D</strong></div>
+            <div class="score-row"><span>Score direcional</span><strong id="wdoScore">N/D</strong></div>
+            <div class="score-track"><div id="wdoScoreBar" class="score-bar"></div><span class="score-center"></span></div>
+            <div id="wdoConfidence" class="muted">Sem amostra suficiente.</div>
+            <p id="wdoAction" class="action-plan">Aguardando dados.</p>
+            <div id="wdoOpeningComponents" class="component-list compact"></div>
+        </article>
+    </div>
+    <div id="openingDisclaimer" class="message warning">O score é direcional e exige confirmação no preço.</div>
+</section>
+
+<section class="panel tradingview-panel" id="tradingViewPanel">
+    <div class="tradingview-panel-header">
+        <div>
+            <h2>Gráfico do mini índice — WINFUT</h2>
+            <p class="muted">Contrato contínuo <strong>BMFBOVESPA:WIN1!</strong>, aberto inicialmente em 5 minutos. O seletor de símbolo permanece liberado.</p>
+        </div>
+        <a class="external-widget-link" href="https://br.tradingview.com/symbols/BMFBOVESPA-WIN1%21/" target="_blank" rel="noopener noreferrer">Abrir no TradingView</a>
+    </div>
+    <div class="tradingview-widget-container tradingview-chart-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <div class="tradingview-widget-copyright">
+            <a href="https://br.tradingview.com/symbols/BMFBOVESPA-WIN1%21/" rel="noopener nofollow" target="_blank"><span class="blue-text">WIN1! gráfico</span></a><span class="trademark"> por TradingView</span>
+        </div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+        {
+            "allow_symbol_change": true,
+            "calendar": false,
+            "details": true,
+            "hide_side_toolbar": false,
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "hide_volume": false,
+            "hotlist": false,
+            "interval": "5",
+            "locale": "br",
+            "save_image": true,
+            "style": "1",
+            "symbol": "BMFBOVESPA:WIN1!",
+            "theme": "dark",
+            "timezone": "America/Sao_Paulo",
+            "backgroundColor": "#101c2d",
+            "gridColor": "rgba(145, 162, 186, 0.08)",
+            "watchlist": ["BMFBOVESPA:WIN1!", "BMFBOVESPA:WDO1!", "BMFBOVESPA:IBOV"],
+            "withdateranges": true,
+            "compareSymbols": [],
+            "studies": [],
+            "autosize": true
+        }
+        </script>
+    </div>
+    <p class="widget-disclaimer">O gráfico é fornecido pela TradingView e pode ter atraso conforme o mercado e o plano de dados. Use a cotação da sua corretora como referência operacional.</p>
+</section>
+
+<section class="grid two">
+    <article class="panel">
+        <h2>Sentimento global calculado</h2>
+        <div id="globalDirection" class="headline">N/D</div>
+        <div id="globalComposite" class="metric">N/D</div>
+        <div id="globalConfidence" class="muted"></div>
+        <div id="globalComponents" class="component-list"></div>
+    </article>
+    <article class="panel">
+        <h2>Cenário Brasil calculado</h2>
+        <div id="brazilDirection" class="headline">N/D</div>
+        <div id="brazilComposite" class="metric">N/D</div>
+        <div id="brazilConfidence" class="muted"></div>
+        <div id="brazilComponents" class="component-list"></div>
+    </article>
+</section>
+
+<section class="panel">
+    <h2>Paridade do dólar</h2>
+    <p class="muted">Sem delta fixo, projeção artificial ou preço de referência. Campos teóricos aparecem somente quando todas as entradas reais existem.</p>
+    <div id="parityGrid" class="data-grid"></div>
+    <div id="parityMissing" class="message warning" hidden></div>
+</section>
+
+<section class="grid two">
+    <article class="panel">
+        <h2>USD/BRL intradiário real</h2>
+        <div id="usdChart" class="chart"></div>
+    </article>
+    <article class="panel">
+        <h2>Compostos calculados ao longo do tempo</h2>
+        <div id="compositeChart" class="chart"></div>
+    </article>
+</section>
+
+<section class="panel">
+    <h2>Ativos normalizados pela primeira observação real</h2>
+    <p class="muted">Base 100 é apenas uma transformação dos preços efetivamente armazenados.</p>
+    <div id="marketChart" class="chart tall"></div>
+</section>
+
+<section class="grid two">
+    <article class="panel">
+        <h2>ADRs brasileiras</h2>
+        <div id="adrChart" class="chart tall"></div>
+    </article>
+    <article class="panel">
+        <h2>Estado das fontes</h2>
+        <div id="sourceStatus" class="source-list"></div>
+    </article>
+</section>
+
+<section class="panel policy">
+    <h2>Política de dados</h2>
+    <p id="dataPolicy">Valores ausentes permanecem como N/D.</p>
+</section>
+    </div>
+</div>
+{% endblock %}
