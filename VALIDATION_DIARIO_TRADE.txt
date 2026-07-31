@@ -1,0 +1,25 @@
+VALIDAÇÃO — DIÁRIO TRADE
+Data: 17/07/2026
+
+Resultado:
+- Django system check: aprovado
+- Migrações: sem alterações pendentes
+- Testes automatizados: 40 aprovados, 0 falhas
+- Compilação Python: aprovada
+- Sintaxe JavaScript: aprovada
+- Renderização da rota /diario/: aprovada em teste Django
+- APIs de cadastro e analytics: aprovadas
+- YAML do Docker Compose: válido
+
+Cobertura adicionada:
+- cálculo financeiro WIN/WDO
+- saídas parciais e média ponderada
+- capital inicial, aportes e retiradas
+- curva de capital e drawdown
+- rankings por setup, horário, notícia e abertura
+- cadastro, edição e exclusão de operações
+- contexto automático do calendário e do snapshot de abertura
+- upload de print com limite de 5 MB
+
+Observação:
+O ambiente de validação não possui o executável Docker, portanto a imagem não foi construída aqui. A configuração Compose foi analisada e o YAML foi carregado com sucesso.

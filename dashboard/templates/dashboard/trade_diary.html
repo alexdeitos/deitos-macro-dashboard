@@ -1,0 +1,215 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Diário Trade · Macro Dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/trade_diary.css' %}">{% endblock %}
+{% block extra_js %}<script defer src="{% static 'dashboard/js/trade_diary.js' %}"></script>{% endblock %}
+{% block content %}
+<div id="tradeDiaryApp" class="trade-diary" data-default-account="{{ default_account_id }}">
+    <header class="diary-hero">
+        <div>
+            <span class="diary-kicker">Performance baseada nos seus próprios dados</span>
+            <h1>DIÁRIO TRADE</h1>
+            <p>Registre contexto, execução e resultado. Descubra onde, quando e por que sua operação é lucrativa.</p>
+        </div>
+        <div class="diary-hero-actions">
+            <label class="account-switcher">
+                <span>Conta</span>
+                <select id="accountSelect" aria-label="Conta operacional"></select>
+            </label>
+            <button id="newAccountButton" class="diary-button ghost" type="button">＋ Nova conta</button>
+            <button id="newTradeButton" class="diary-button primary" type="button">＋ Registrar trade</button>
+        </div>
+    </header>
+
+    <nav class="diary-tabs" aria-label="Áreas do diário">
+        <button class="diary-tab active" type="button" data-diary-tab="journal">Diário do dia</button>
+        <button class="diary-tab" type="button" data-diary-tab="analytics">Análise de performance</button>
+        <button class="diary-tab" type="button" data-diary-tab="capital">Capital e movimentações</button>
+    </nav>
+
+    <div id="diaryMessage" class="diary-message" hidden></div>
+
+    <section class="diary-view active" data-diary-view="journal">
+        <div class="day-navigation">
+            <button id="previousDayButton" type="button" aria-label="Dia anterior">←</button>
+            <input id="diaryDate" type="date">
+            <button id="nextDayButton" type="button" aria-label="Próximo dia">→</button>
+            <strong id="diaryWeekday">—</strong>
+            <button id="todayButton" class="today-chip" type="button">HOJE</button>
+        </div>
+
+        <section class="daily-summary-grid" aria-label="Resumo do dia">
+            <article><span>Resultado líquido</span><strong id="dayNet">R$ 0,00</strong></article>
+            <article><span>Pontos líquidos</span><strong id="dayPoints">0,0</strong></article>
+            <article><span>Trades</span><strong id="dayTrades">0</strong></article>
+            <article><span>Taxa de acerto</span><strong id="dayWinRate">0%</strong></article>
+            <article><span>Seguiu o plano</span><strong id="dayPlanRate">—</strong></article>
+        </section>
+
+        <section class="day-plan-card">
+            <div class="day-plan-heading">
+                <div>
+                    <span class="section-label">Plano e revisão</span>
+                    <h2>Contexto do pregão</h2>
+                </div>
+                <label class="no-trade-toggle"><input id="noTradeCheckbox" type="checkbox"> Não operei neste dia</label>
+            </div>
+            <div class="day-plan-grid">
+                <label><span>Plano de abertura</span><textarea id="openingPlan" rows="3" placeholder="O que precisava acontecer para comprar ou vender?"></textarea></label>
+                <label><span>Leitura pré-mercado</span><textarea id="premarketNotes" rows="3" placeholder="Cenário macro, agenda, regiões de preço e riscos."></textarea></label>
+                <label><span>Revisão do dia</span><textarea id="dailyReview" rows="3" placeholder="O que funcionou, o que repetir e o que eliminar?"></textarea></label>
+                <label><span>Motivo para não operar</span><input id="noTradeReason" type="text" placeholder="Ex.: sem contexto, risco alto, disciplina"></label>
+            </div>
+            <button id="saveDayButton" class="diary-button subtle" type="button">Salvar plano e revisão</button>
+        </section>
+
+        <section class="trades-day-card">
+            <div class="section-heading">
+                <div><span class="section-label">Execuções</span><h2 id="dayTitle">Operações do dia</h2></div>
+                <button id="newTradeInlineButton" class="diary-button primary compact" type="button">＋ Trade</button>
+            </div>
+            <div id="tradesList" class="trades-list" aria-live="polite"></div>
+        </section>
+    </section>
+
+    <section class="diary-view" data-diary-view="analytics" hidden>
+        <div class="analytics-toolbar">
+            <div><span class="section-label">Filtros</span><h2>Análise quantitativa das operações</h2></div>
+            <label>De <input id="analyticsStart" type="date"></label>
+            <label>Até <input id="analyticsEnd" type="date"></label>
+            <button id="analyticsRefreshButton" class="diary-button subtle" type="button">Recalcular</button>
+        </div>
+
+        <section id="analyticsKpis" class="analytics-kpis"></section>
+
+        <section class="analytics-highlights">
+            <article><span>Melhor operação</span><strong id="bestTradeHighlight">—</strong><small id="bestTradeMeta"></small></article>
+            <article><span>Maior ganho em pontos</span><strong id="bestPointsHighlight">—</strong><small id="bestPointsMeta"></small></article>
+            <article><span>Melhor horário</span><strong id="bestHourHighlight">—</strong><small id="bestHourMeta"></small></article>
+            <article><span>Melhor estratégia</span><strong id="bestSetupHighlight">—</strong><small id="bestSetupMeta"></small></article>
+        </section>
+
+        <section class="analytics-chart-grid">
+            <article class="diary-chart-card wide"><h3>Curva de capital e drawdown</h3><div id="equityChart" class="diary-chart"></div></article>
+            <article class="diary-chart-card"><h3>Resultado por estratégia</h3><div id="setupChart" class="diary-chart"></div></article>
+            <article class="diary-chart-card"><h3>Resultado por horário</h3><div id="hourChart" class="diary-chart"></div></article>
+            <article class="diary-chart-card"><h3>Notícia no contexto</h3><div id="newsChart" class="diary-chart"></div></article>
+            <article class="diary-chart-card"><h3>Cálculo de abertura</h3><div id="openingChart" class="diary-chart"></div></article>
+        </section>
+
+        <section class="analytics-table-card">
+            <div class="section-heading"><div><span class="section-label">Ranking</span><h2>Estratégias e setups</h2></div></div>
+            <div class="table-scroll"><table class="analytics-table"><thead><tr><th>Estratégia</th><th>Trades</th><th>Acerto</th><th>Resultado</th><th>Média</th><th>PF</th><th>Pontos médios</th></tr></thead><tbody id="setupTableBody"></tbody></table></div>
+        </section>
+    </section>
+
+    <section class="diary-view" data-diary-view="capital" hidden>
+        <section class="capital-overview" id="capitalOverview"></section>
+        <div class="capital-grid">
+            <section class="capital-form-card">
+                <span class="section-label">Movimentação</span><h2>Registrar aporte ou retirada</h2>
+                <form id="capitalMovementForm">
+                    <label><span>Data</span><input name="movement_date" type="date" required></label>
+                    <label><span>Tipo</span><select name="kind"><option value="deposit">Aporte</option><option value="withdrawal">Retirada</option><option value="adjustment">Ajuste positivo</option></select></label>
+                    <label><span>Valor</span><input name="amount" type="number" min="0.01" step="0.01" required></label>
+                    <label><span>Descrição</span><input name="description" type="text" placeholder="Ex.: aporte mensal"></label>
+                    <button class="diary-button primary" type="submit">Salvar movimentação</button>
+                </form>
+            </section>
+            <section class="capital-list-card"><span class="section-label">Histórico</span><h2>Movimentações</h2><div id="capitalMovementsList"></div></section>
+        </div>
+    </section>
+
+    <dialog id="tradeDialog" class="trade-dialog">
+        <form id="tradeForm" method="dialog" enctype="multipart/form-data">
+            <input id="tradeId" type="hidden" name="trade_id">
+            <header class="dialog-header">
+                <div><span class="section-label">Protocolo de performance</span><h2 id="tradeDialogTitle">REGISTRO DE OPERAÇÃO</h2></div>
+                <div class="quality-badge"><small>Qualidade técnica</small><strong id="qualityBadgeText">NÃO AVALIADA</strong></div>
+                <button class="dialog-close" type="button" data-close-dialog="tradeDialog">×</button>
+            </header>
+
+            <div class="trade-form-layout">
+                <div class="trade-form-main">
+                    <fieldset>
+                        <legend>IDENTIFICAÇÃO</legend>
+                        <div class="form-grid three">
+                            <label><span>Data</span><input name="trade_date" type="date" required></label>
+                            <label><span>Entrada</span><input name="entry_time" type="time" required></label>
+                            <label><span>Saída final</span><input name="exit_time" type="time"></label>
+                            <label><span>Ativo financeiro</span><select name="instrument"><option value="WIN">Mini índice (WIN)</option><option value="WDO">Mini dólar (WDO)</option><option value="IND">Índice cheio (IND)</option><option value="DOL">Dólar cheio (DOL)</option><option value="STOCK">Ação</option><option value="OTHER">Outro</option></select></label>
+                            <label><span>Símbolo/contrato</span><input name="symbol" type="text" placeholder="Ex.: WINQ26"></label>
+                            <label><span>Setup</span><select id="setupSelect" name="setup_id"></select></label>
+                            <label class="span-two"><span>Nome livre do setup</span><input name="setup_label" type="text" placeholder="Use para detalhar a estratégia"></label>
+                            <div class="direction-field"><span>Direção</span><div><label><input type="radio" name="direction" value="BUY" checked><b>▲ Compra</b></label><label><input type="radio" name="direction" value="SELL"><b>▼ Venda</b></label></div></div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>EXECUÇÃO E MÉTRICAS</legend>
+                        <div class="form-grid four">
+                            <label><span>Contratos iniciais</span><input name="contracts" type="number" min="1" value="1" required></label>
+                            <label><span>Entrada</span><input name="entry_price" type="number" min="0" step="0.0001" required></label>
+                            <label><span>Saída</span><input name="exit_price" type="number" min="0" step="0.0001"></label>
+                            <label><span>R$ por ponto/contrato</span><input name="point_value" type="number" min="0" step="0.0001"></label>
+                            <label><span>Stop assumido (pts)</span><input name="planned_stop_points" type="number" min="0" step="0.01"></label>
+                            <label><span>MAE · contra (pts)</span><input name="mae_points" type="number" min="0" step="0.01"></label>
+                            <label><span>MFE · favor (pts)</span><input name="mfe_points" type="number" min="0" step="0.01"></label>
+                            <label><span>Custos/taxas (R$)</span><input name="fees" type="number" min="0" step="0.01" value="0"></label>
+                            <label class="span-two"><span>Resultado líquido manual (opcional)</span><input name="financial_result_override" type="number" step="0.01" placeholder="Use somente para sobrescrever o cálculo"></label>
+                        </div>
+                        <div class="partial-header"><span>Saídas parciais</span><button id="addPartialExitButton" type="button">＋ adicionar parcial</button></div>
+                        <div id="partialExits" class="partial-exits"></div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>PRINT DA OPERAÇÃO</legend>
+                        <label class="upload-zone"><input id="screenshotInput" name="screenshot" type="file" accept="image/png,image/jpeg,image/webp"><strong>⇧ Upload, arraste ou cole (Ctrl+V)</strong><span>JPG, PNG ou WEBP até 5 MB</span></label>
+                        <label><span>Ou cole uma URL</span><input name="screenshot_url" type="url" placeholder="https://..."></label>
+                        <div id="screenshotPreview" class="screenshot-preview" hidden></div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>CONTEXTO DE NOTÍCIAS E ABERTURA</legend>
+                        <div id="contextStatus" class="context-status">Preencha data, horário e ativo para recuperar o contexto.</div>
+                        <div class="form-grid three">
+                            <label><span>Tinha notícia relevante?</span><select name="had_relevant_news"><option value="false">Não</option><option value="true">Sim</option></select></label>
+                            <label><span>Impacto percebido</span><select name="news_impact"><option value="unknown">Não avaliado</option><option value="none">Não impactou</option><option value="low">Leve</option><option value="medium">Moderado</option><option value="high">Forte</option></select></label>
+                            <label><span>Evento econômico ligado</span><select id="linkedEventSelect" name="linked_event_id"><option value="">Nenhum</option></select></label>
+                            <label><span>Viés do cálculo de abertura</span><select name="opening_bias"><option value="unknown">Indisponível</option><option value="buy">Comprador</option><option value="sell">Vendedor</option><option value="neutral">Neutro/aguardar</option></select></label>
+                            <label><span>Score de abertura</span><input name="opening_score" type="number" step="0.01"></label>
+                            <label><span>O cálculo bateu?</span><select name="opening_matched"><option value="">Não avaliado</option><option value="true">Sim</option><option value="false">Não</option></select></label>
+                            <label class="span-three"><span>Como a notícia impactou o preço?</span><textarea name="news_notes" rows="2" placeholder="Descreva velocidade, direção, rompimento, falso movimento..."></textarea></label>
+                            <label class="span-three"><span>Observação sobre a abertura</span><textarea name="opening_notes" rows="2" placeholder="O painel acertou a direção? Em qual momento confirmou ou invalidou?"></textarea></label>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <aside class="trade-form-side">
+                    <section class="live-summary-card"><span class="section-label">Resumo da operação</span><div class="live-result"><small>Resultado estimado</small><strong id="liveFinancialResult">R$ 0,00</strong></div><div class="live-summary-grid"><span><small>Pontos</small><b id="livePoints">0,0</b></span><span><small>Saldo aberto</small><b id="liveOpenContracts">0</b></span><span><small>Risco planejado</small><b id="liveRisk">R$ 0,00</b></span><span><small>Risco/retorno</small><b id="liveRR">—</b></span></div></section>
+
+                    <fieldset><legend>ESTADO EMOCIONAL</legend><span class="field-help">Antes da entrada</span><div class="emotion-grid" data-emotion-group="before"></div><span class="field-help">Depois da saída</span><div class="emotion-grid" data-emotion-group="after"></div></fieldset>
+
+                    <fieldset><legend>QUALIDADE E DISCIPLINA</legend><label><span>Qualidade técnica</span><select name="technical_quality"><option value="unrated">Não avaliada</option><option value="forced">Forçada</option><option value="weak">Fraca</option><option value="valid">Válida</option><option value="excellent">Excelente</option></select></label><label><span>Disciplina (0–10)</span><input name="discipline_score" type="range" min="0" max="10" value="0"><output id="disciplineOutput">0</output></label><label><span>Seguiu o plano?</span><select name="followed_plan"><option value="">Não avaliado</option><option value="true">Sim</option><option value="false">Não</option></select></label><label><span>Erros cometidos</span><input name="mistakes" type="text" placeholder="overtrade, entrada antecipada, stop movido"></label></fieldset>
+
+                    <fieldset><legend>LEITURA TÉCNICA</legend><label><textarea name="technical_reading" rows="7" placeholder="O que viu no gráfico? Por que entrou? O que faria diferente?"></textarea></label><label><span>Notas de execução</span><textarea name="execution_notes" rows="4" placeholder="Slippage, lote, saída, gerenciamento..."></textarea></label></fieldset>
+                </aside>
+            </div>
+
+            <footer class="dialog-footer"><button id="saveTradeButton" class="diary-button primary" type="submit">GRAVAR OPERAÇÃO</button><button class="diary-button ghost" type="button" data-close-dialog="tradeDialog">DESCARTAR</button></footer>
+        </form>
+    </dialog>
+
+    <dialog id="accountDialog" class="small-dialog">
+        <form id="accountForm" method="dialog">
+            <header class="dialog-header"><div><span class="section-label">Carteira operacional</span><h2>NOVA CONTA</h2></div><button class="dialog-close" type="button" data-close-dialog="accountDialog">×</button></header>
+            <label><span>Nome</span><input name="name" type="text" required placeholder="Ex.: Profit principal"></label>
+            <label><span>Corretora</span><input name="broker" type="text"></label>
+            <label><span>Capital inicial</span><input name="initial_capital" type="number" min="0" step="0.01" required value="0"></label>
+            <label><span>Observações</span><textarea name="notes" rows="3"></textarea></label>
+            <label class="check-line"><input name="is_default" type="checkbox"> Tornar conta padrão</label>
+            <footer class="dialog-footer"><button class="diary-button primary" type="submit">CRIAR CONTA</button><button class="diary-button ghost" type="button" data-close-dialog="accountDialog">CANCELAR</button></footer>
+        </form>
+    </dialog>
+</div>
+{% endblock %}

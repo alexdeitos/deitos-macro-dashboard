@@ -1,0 +1,19 @@
+VALIDATION REPORT
+=================
+
+Correções verificadas:
+- (+2,97%) permanece +2,97.
+- (-2,97%) permanece -2,97.
+- 177.866 no Investing Brasil é armazenado como 177866 pontos.
+- 5.133,33 é armazenado como 5133.33.
+- Conflito de sinal com magnitude compatível é corrigido pelos preços.
+- Fechamento anterior incompatível não sobrescreve o percentual raspado.
+
+Validações executadas neste ambiente:
+- Compilação de todos os arquivos Python: OK.
+- Sintaxe do app.js com node --check: OK.
+- Testes de regressão do parser: OK.
+
+Limitação do ambiente:
+- O manage.py test/check não foi executado porque Django/Celery não estão instalados no host de validação.
+- Consultas externas ao Investing não foram executadas porque o ambiente não possui resolução DNS externa.

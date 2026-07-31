@@ -1,0 +1,16 @@
+VALIDAÇÃO — CALENDÁRIO TRADING ECONOMICS
+
+- 35 testes automatizados aprovados.
+- django check aprovado.
+- makemigrations --check aprovado: nenhuma alteração pendente.
+- compileall aprovado.
+- sintaxe de app.js, news.js e calendar.js aprovada pelo Node.js.
+- collectstatic aprovado.
+- parser validado com hora UTC convertida para America/Sao_Paulo.
+- deduplicação e atualização de eventos validadas.
+- filtros por país e importância validados.
+
+Limitação do ambiente de montagem:
+A consulta externa real não foi executada no container de revisão por indisponibilidade de DNS. O coletor deve ser validado no ambiente Docker do usuário com:
+
+docker compose exec web python manage.py collect_economic_calendar

@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.py[cod]
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+staticfiles/
+media/
+celerybeat-schedule*
+*.log
+.DS_Store
+.vscode/
+.idea/
