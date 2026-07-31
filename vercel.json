@@ -1,9 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "python manage.py collectstatic --noinput --settings=macro_dashboard.settings_vercel",
+  "outputDirectory": "staticfiles",
   "functions": {
     "api/index.py": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   },
   "rewrites": [
@@ -11,6 +12,5 @@
       "source": "/(.*)",
       "destination": "/api/index.py"
     }
-  ],
-  "outputDirectory": "staticfiles"
+  ]
 }
