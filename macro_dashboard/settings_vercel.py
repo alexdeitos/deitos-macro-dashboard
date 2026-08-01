@@ -39,6 +39,16 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "dashboard.basic_auth.DashboardBasicAuthMiddleware",
+    *[
+        middleware
+        for middleware in MIDDLEWARE
+        if middleware != "django.middleware.security.SecurityMiddleware"
+    ],
+]
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
