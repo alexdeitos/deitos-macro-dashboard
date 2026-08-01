@@ -1,0 +1,11 @@
+.git
+.gitignore
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+staticfiles/
+media/
+*.sqlite3
+celerybeat-schedule*

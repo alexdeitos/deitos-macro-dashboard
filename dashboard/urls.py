@@ -28,5 +28,9 @@ urlpatterns = [
     path("api/trade/capital/", diary_views.api_capital_movements, name="api_capital_movements"),
     path("api/trade/capital/<int:movement_id>/", diary_views.api_capital_movement_detail, name="api_capital_movement_detail"),
     path("health/", views.health, name="health"),
-    path("api/public-market-snapshot/",views.api_public_market_snapshot,name="api_public_market_snapshot"),
+    path(
+        "api/public-market-snapshot/",
+        views.api_public_market_snapshot,
+        name="api_public_market_snapshot",
+    ),
 ]

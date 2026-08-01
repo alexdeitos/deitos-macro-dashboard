@@ -38,6 +38,11 @@ def api_public_market_snapshot(request):
         return JsonResponse({"detail": "Unauthorized"}, status=401)
 
     payload = get_latest_payload()
+    if payload is None:
+        return JsonResponse(
+            {"available": False, "detail": "Nenhuma coleta disponível."},
+            status=503,
+        )
 
     return JsonResponse(
         payload,
