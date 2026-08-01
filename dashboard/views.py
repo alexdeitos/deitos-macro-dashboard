@@ -21,8 +21,8 @@ import os
 REFRESH_LOCK_KEY = "market-dashboard:refresh-lock"
 
 
-@ensure_csrf_cookie
 @require_GET
+@ensure_csrf_cookie
 def index(request):
     return render(request, "dashboard/index.html")
 
