@@ -205,7 +205,7 @@ class InvestingSource:
     instrument_pages = [
         ("DOL_FUT", "Dólar comercial futuro B3", "future", "/currencies/usd-brl-bmf-futures", "BRL"),
         ("DXY", "Índice Dólar DXY", "currency_index", "/indices/usdollar", "points"),
-        ("IBOV", "Ibovespa", "index", "/indices/bovespa", "points"),
+        ("IBOV", "Ibovespa Futures", "future", "https://www.investing.com/indices/ibovespa-futures", "points"),
         ("SP500", "S&P 500", "index", "/indices/us-spx-500", "points"),
         ("NASDAQ", "Nasdaq Composite", "index", "/indices/nasdaq-composite", "points"),
         ("VIX", "Índice de Volatilidade VIX", "volatility", "/indices/volatility-s-p-500", "points"),
@@ -318,7 +318,7 @@ class InvestingSource:
 
         def fetch_rows(rows, *, required: bool) -> None:
             for symbol, name, category, path, currency in rows:
-                url = f"{self.base_url}{path}"
+                url = path if str(path).startswith(("http://", "https://")) else f"{self.base_url}{path}"
                 try:
                     html = self._get_html(url)
                     quotes.append(

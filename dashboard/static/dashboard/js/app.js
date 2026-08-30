@@ -199,6 +199,107 @@
                 : "";
     }
 
+    let latestRealEurUsdParity = null;
+
+    function calculateFrp0Parity() {
+        const input = byId("frp0Input");
+        const result = byId("frp0Result");
+
+        if (!input || !result) {
+            return;
+        }
+
+        const frp0 = toNumeric(input.value);
+
+        result.className = "frp0-result";
+
+        if (frp0 === null) {
+            result.textContent = "Informe um FRP0 válido";
+            result.classList.add("error");
+            return;
+        }
+
+        if (latestRealEurUsdParity === null) {
+            result.textContent = "Paridade indisponível";
+            result.classList.add("error");
+            return;
+        }
+
+        /*
+         * A paridade é exibida como cotação (ex.: 5,1629), mas o FRP0
+         * informado pelo usuário está na escala de pontos do dólar futuro.
+         * Portanto, convertemos 5,1629 -> 5162,9 antes da soma.
+         * Exemplo: 5162,9 + 36,80 = 5199,70.
+         */
+        const total = (latestRealEurUsdParity * 1000) + frp0;
+        result.textContent = `Paridade + FRP0: ${number(total, 2)}`;
+        result.classList.add("has-value");
+    }
+
+    function bindFrp0Calculator() {
+        const input = byId("frp0Input");
+        const button = byId("frp0CalculateButton");
+
+        if (!input || !button) {
+            return;
+        }
+
+        button.addEventListener("click", calculateFrp0Parity);
+        input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                calculateFrp0Parity();
+            }
+        });
+    }
+
+    function renderWinOpeningEstimate(quotes) {
+        const valueNode = byId("qWIN_OPENING");
+        const detailNode = byId("cWIN_OPENING");
+
+        if (!valueNode || !detailNode) {
+            return;
+        }
+
+        const ibovClose = toNumeric(quotes?.IBOV?.value);
+        const sp500Change = toNumeric(
+            quotes?.SP500?.change_percent
+        );
+
+        if (ibovClose === null || sp500Change === null) {
+            valueNode.textContent = "N/D";
+            detailNode.textContent =
+                "Aguardando Ibovespa e S&P 500";
+            detailNode.className = "";
+            return;
+        }
+
+        /*
+         * Estimativa solicitada para a abertura do WIN:
+         * fechamento do Ibovespa ajustado pela variação percentual
+         * atual do S&P 500.
+         *
+         * Exemplo: Ibovespa 174.389,00 e S&P 500 +1,00%
+         * => 174.389,00 * (1 + 1,00 / 100) = 176.132,89.
+         */
+        const estimatedOpening =
+            ibovClose * (1 + (sp500Change / 100));
+
+        valueNode.textContent = number(
+            estimatedOpening,
+            3
+        );
+
+        detailNode.textContent =
+            `Fech. IBOV: ${number(ibovClose, 3)} · S&P 500: ${percent(sp500Change)}`;
+
+        detailNode.className = sp500Change > 0
+            ? "positive"
+            : sp500Change < 0
+                ? "negative"
+                : "";
+    }
+
     function renderQuotes(quotes) {
         renderQuote(
             "USD_BRL",
@@ -211,6 +312,9 @@
             quotes.REAL_EUR_USD_PARITY,
             4
         );
+
+        latestRealEurUsdParity =
+            toNumeric(quotes.REAL_EUR_USD_PARITY?.value);
 
         renderQuote(
             "DOL_FUT",
@@ -227,8 +331,10 @@
         renderQuote(
             "IBOV",
             quotes.IBOV,
-            2
+            3
         );
+
+        renderWinOpeningEstimate(quotes);
 
         renderQuote(
             "EWZ",
@@ -1618,6 +1724,8 @@
                     refreshNow
                 );
             }
+
+            bindFrp0Calculator();
 
             loadDashboard();
 

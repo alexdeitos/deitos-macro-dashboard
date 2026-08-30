@@ -69,7 +69,23 @@
         <div id="collectionStatus" class="status neutral">Aguardando dados</div>
         <div id="lastUpdate" class="muted">Nenhuma coleta carregada.</div>
     </div>
-    <button id="refreshButton" class="button" type="button">Atualizar fontes agora</button>
+    <div class="toolbar-actions">
+        <div class="frp0-calculator" aria-label="Calculadora FRP0 com paridade REAL / EUR-USD">
+            <label for="frp0Input">FRP0</label>
+            <input
+                id="frp0Input"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="0,00"
+                maxlength="12"
+                aria-describedby="frp0Result"
+            >
+            <button id="frp0CalculateButton" class="button secondary" type="button">Calcular</button>
+            <output id="frp0Result" class="frp0-result" aria-live="polite">Paridade + FRP0: N/D</output>
+        </div>
+        <button id="refreshButton" class="button" type="button">Atualizar fontes agora</button>
+    </div>
 </section>
 
 <div id="message" class="message" hidden></div>
@@ -84,6 +100,7 @@
     <article class="card"><span>VIX</span><strong id="qVIX">N/D</strong><small id="cVIX">Fonte indisponível</small></article>
     <article class="card"><span>Brent</span><strong id="qBRENT">N/D</strong><small id="cBRENT">Fonte indisponível</small></article>
     <article class="card"><span>Minério</span><strong id="qIRON_ORE">N/D</strong><small id="cIRON_ORE">Fonte indisponível</small></article>
+    <article class="card win-opening-estimate"><span>Abertura WIN</span><strong id="qWIN_OPENING">N/D</strong><small id="cWIN_OPENING">Aguardando Ibovespa e S&amp;P 500</small></article>
 </section>
 
 <section class="panel macro-opening-panel" id="macroOpeningPanel">

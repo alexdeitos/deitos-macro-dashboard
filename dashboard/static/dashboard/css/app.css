@@ -21,8 +21,19 @@ nav a { color: var(--muted); text-decoration: none; }
 nav a:hover { color: var(--text); }
 .container { width: min(1500px, calc(100% - 28px)); margin: 20px auto 60px; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.toolbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .button { border: 0; border-radius: 9px; padding: 11px 15px; background: var(--blue); color: #06101d; font-weight: 800; cursor: pointer; }
 .button:disabled { opacity: .55; cursor: wait; }
+.button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+.button.secondary:hover { border-color: var(--blue); }
+.frp0-calculator { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; background: linear-gradient(180deg, var(--panel), #0d1828); }
+.frp0-calculator label { color: var(--muted); font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.frp0-calculator input { width: 90px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(8,17,31,.72); color: var(--text); outline: none; font: inherit; font-variant-numeric: tabular-nums; }
+.frp0-calculator input::placeholder { color: #61728d; }
+.frp0-calculator input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(96,165,250,.10); }
+.frp0-result { min-width: 165px; color: var(--muted); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.frp0-result.has-value { color: var(--green); }
+.frp0-result.error { color: var(--red); }
 .status { display: inline-flex; padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; font-weight: 700; }
 .status.ok, .pill.ok { color: var(--green); border-color: rgba(52,211,153,.45); }
 .status.partial, .status.neutral, .pill.partial { color: var(--yellow); border-color: rgba(251,191,36,.45); }
@@ -38,6 +49,8 @@ nav a:hover { color: var(--text); }
 .card strong { font-size: 24px; }
 .card small.positive { color: var(--green); }
 .card small.negative { color: var(--red); }
+.win-opening-estimate { border-color: rgba(96,165,250,.65); box-shadow: 0 0 0 1px rgba(37,99,235,.18), 0 12px 30px rgba(0,0,0,.15); }
+.win-opening-estimate strong { color: var(--blue); }
 .grid { display: grid; gap: 16px; margin-bottom: 16px; }
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .panel { padding: 18px; margin-bottom: 16px; overflow: hidden; }
@@ -250,3 +263,6 @@ nav a:hover { color: var(--text); }
 .calendar-values .calendar-actual { color:var(--green); }
 .calendar-empty { padding:28px 16px; color:var(--muted); text-align:center; font-size:12px; }
 @media (max-width:520px) { .calendar-values { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+@media (max-width:1100px) { .toolbar { align-items: flex-start; flex-wrap: wrap; } .toolbar-actions { width: 100%; justify-content: flex-start; } }
+@media (max-width:720px) { .toolbar-actions, .frp0-calculator { width: 100%; } .frp0-calculator { flex-wrap: wrap; } .frp0-result { flex: 1 1 180px; } .toolbar-actions > #refreshButton { width: 100%; } }
