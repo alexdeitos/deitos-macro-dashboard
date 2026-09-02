@@ -41,3 +41,7 @@ Para corrigir dados históricos já salvos:
 docker compose exec web python manage.py repair_market_history --dry-run
 docker compose exec web python manage.py repair_market_history
 ```
+
+## Ajuste de 02/09/2026 — Dow Jones como driver principal
+
+A leitura de abertura do WIN foi ajustada para dar maior peso ao **Dow Jones** do que ao S&P 500. A estimativa visual da abertura usa um composto de 70% Dow, 20% S&P 500 e 10% Nasdaq, com renormalização quando houver dados ausentes. No contexto global do painel, o composto também usa Dow Jones 30%, S&P 500 15%, Nasdaq 15%, EEM 15%, DXY 12,5% e VIX 12,5%, com renormalização dos pesos disponíveis. O score operacional também passou a ponderar DJI acima de SP500 nos componentes WIN e WDO.

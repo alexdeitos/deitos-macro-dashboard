@@ -262,28 +262,47 @@
         }
 
         const ibovClose = toNumeric(quotes?.IBOV?.value);
-        const sp500Change = toNumeric(
-            quotes?.SP500?.change_percent
-        );
+        const dowChange = toNumeric(quotes?.DJI?.change_percent);
+        const sp500Change = toNumeric(quotes?.SP500?.change_percent);
+        const nasdaqChange = toNumeric(quotes?.NASDAQ?.change_percent);
 
-        if (ibovClose === null || sp500Change === null) {
+        // Driver principal: Dow Jones. S&P 500 e Nasdaq entram somente
+        // como confirmações secundárias para reduzir dependência de um
+        // único índice americano. Pesos somam 100%.
+        const usChanges = [
+            { value: dowChange, weight: 0.70 },
+            { value: sp500Change, weight: 0.20 },
+            { value: nasdaqChange, weight: 0.10 },
+        ].filter(item => item.value !== null);
+
+        const availableWeight = usChanges.reduce(
+            (sum, item) => sum + item.weight,
+            0
+        );
+        const weightedUsChange = availableWeight > 0
+            ? usChanges.reduce(
+                (sum, item) => sum + (item.value * item.weight),
+                0
+            ) / availableWeight
+            : null;
+
+        if (ibovClose === null || weightedUsChange === null) {
             valueNode.textContent = "N/D";
             detailNode.textContent =
-                "Aguardando Ibovespa e S&P 500";
+                "Aguardando Ibovespa e Dow Jones (driver principal)";
             detailNode.className = "";
             return;
         }
 
         /*
-         * Estimativa solicitada para a abertura do WIN:
-         * fechamento do Ibovespa ajustado pela variação percentual
-         * atual do S&P 500.
-         *
-         * Exemplo: Ibovespa 174.389,00 e S&P 500 +1,00%
-         * => 174.389,00 * (1 + 1,00 / 100) = 176.132,89.
+         * Estimativa da abertura do WIN:
+         * fechamento do Ibovespa ajustado por um composto das bolsas dos EUA,
+         * com 70% de peso no Dow Jones, 20% no S&P 500 e 10% no Nasdaq.
+         * Quando algum componente não estiver disponível, os pesos
+         * disponíveis são renormalizados.
          */
         const estimatedOpening =
-            ibovClose * (1 + (sp500Change / 100));
+            ibovClose * (1 + (weightedUsChange / 100));
 
         valueNode.textContent = number(
             estimatedOpening,
@@ -291,11 +310,11 @@
         );
 
         detailNode.textContent =
-            `Fech. IBOV: ${number(ibovClose, 3)} · S&P 500: ${percent(sp500Change)}`;
+            `Fech. IBOV: ${number(ibovClose, 3)} · Dow: ${percent(dowChange)} · S&P: ${percent(sp500Change)} · Nasdaq: ${percent(nasdaqChange)} · Composto EUA: ${percent(weightedUsChange)}`;
 
-        detailNode.className = sp500Change > 0
+        detailNode.className = weightedUsChange > 0
             ? "positive"
-            : sp500Change < 0
+            : weightedUsChange < 0
                 ? "negative"
                 : "";
     }
@@ -1294,6 +1313,7 @@
             "DXY",
             "IBOV",
             "EWZ",
+            "DJI",
             "SP500",
             "VIX",
         ];

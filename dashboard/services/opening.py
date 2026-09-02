@@ -149,8 +149,11 @@ def build_opening_analysis(quotes: list[Quote], parity: dict[str, Any]) -> dict[
     win = _build_side(quote_map, [
         ("EWZ", 0.20, 3.0, 1, "EWZ"),
         ("IBOV", 0.10, 3.0, 1, "Ibovespa/última sessão"),
-        ("SP500", 0.11, 1.5, 1, "S&P 500"),
-        ("NASDAQ", 0.07, 2.0, 1, "Nasdaq"),
+        # Entre as bolsas dos EUA, o Dow Jones recebe a maior ponderação.
+        # O S&P 500 permanece como confirmação secundária, não como driver principal.
+        ("DJI", 0.16, 1.5, 1, "Dow Jones"),
+        ("SP500", 0.06, 1.5, 1, "S&P 500 (confirmação)"),
+        ("NASDAQ", 0.05, 2.0, 1, "Nasdaq"),
         ("EEM", 0.09, 1.5, 1, "Emergentes (EEM)"),
         ("DXY", 0.08, 0.8, -1, "DXY"),
         ("VIX", 0.07, 10.0, -1, "VIX"),
@@ -163,8 +166,9 @@ def build_opening_analysis(quotes: list[Quote], parity: dict[str, Any]) -> dict[
         ("VIX", 0.13, 10.0, 1, "VIX"),
         ("EEM", 0.10, 1.5, -1, "Emergentes (EEM)"),
         ("EWZ", 0.14, 3.0, -1, "EWZ"),
-        ("SP500", 0.08, 1.5, -1, "S&P 500"),
-        ("NASDAQ", 0.05, 2.0, -1, "Nasdaq"),
+        ("DJI", 0.06, 1.5, -1, "Dow Jones"),
+        ("SP500", 0.03, 1.5, -1, "S&P 500 (confirmação)"),
+        ("NASDAQ", 0.04, 2.0, -1, "Nasdaq"),
         ("IRON_ORE", 0.04, 2.0, -1, "Minério de ferro"),
         ("BRENT", 0.03, 4.0, -1, "Petróleo Brent"),
     ], wdo_extra)

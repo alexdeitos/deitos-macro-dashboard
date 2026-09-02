@@ -13,7 +13,7 @@ from django.utils.dateparse import parse_datetime
 from dashboard.models import CollectionRun, MarketPoint, MarketSnapshot
 
 LATEST_CACHE_KEY = "market-dashboard:latest"
-HISTORY_SYMBOLS = ("USD_BRL", "DXY", "IBOV", "EWZ", "SP500", "VIX")
+HISTORY_SYMBOLS = ("USD_BRL", "DXY", "IBOV", "EWZ", "DJI", "SP500", "VIX")
 
 
 def _decimal(value: Any) -> Decimal | None:

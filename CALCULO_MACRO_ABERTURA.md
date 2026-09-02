@@ -32,3 +32,9 @@ O card exibe separadamente S&P 500, Dow Jones, Nasdaq, DXY e EWZ. Esses itens aj
 ## Agenda econômica
 
 Notícias de impacto 3 estrelas não são presumidas. A agenda aparece como não configurada até que uma fonte específica seja integrada e validada.
+
+## Ponderação das bolsas americanas na abertura do WIN
+
+Para a estimativa da abertura do mini índice, o **Dow Jones (DJI) passou a ser o principal driver entre os índices americanos**. A composição usada no ajuste da abertura é 70% Dow Jones, 20% S&P 500 e 10% Nasdaq; quando um componente não está disponível, os pesos disponíveis são renormalizados.
+
+No score direcional do WIN/WDO, o Dow Jones também recebe peso maior que o S&P 500. O S&P 500 não foi eliminado: permanece como confirmação secundária.

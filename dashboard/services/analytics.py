@@ -48,33 +48,42 @@ def _confidence(values: list[float], composite: float) -> dict[str, Any]:
 def build_market_analysis(quotes: list[Quote]) -> dict[str, Any]:
     quote_by_symbol = _quote_map(quotes)
 
+    # Contexto global: Dow Jones passa a ser o principal índice acionário
+    # americano; S&P 500 permanece como confirmação secundária.
     global_definitions = [
-        ("SP500", 1, "S&P 500"),
-        ("NASDAQ", 1, "Nasdaq"),
-        ("EEM", 1, "Emergentes (EEM)"),
-        ("DXY", -1, "DXY invertido"),
-        ("VIX", -1, "VIX invertido"),
+        ("DJI", 1, "Dow Jones (principal)", 0.30),
+        ("SP500", 1, "S&P 500 (secundário)", 0.15),
+        ("NASDAQ", 1, "Nasdaq", 0.15),
+        ("EEM", 1, "Emergentes (EEM)", 0.15),
+        ("DXY", -1, "DXY invertido", 0.125),
+        ("VIX", -1, "VIX invertido", 0.125),
     ]
     global_components: list[dict[str, Any]] = []
     global_values: list[float] = []
-    for symbol, orientation, label in global_definitions:
+    weighted_sum = 0.0
+    available_weight = 0.0
+    for symbol, orientation, label, weight in global_definitions:
         quote = quote_by_symbol.get(symbol)
         if quote is None or quote.change_percent is None:
             continue
         adjusted = quote.change_percent * orientation
         global_values.append(adjusted)
+        weighted_sum += adjusted * weight
+        available_weight += weight
         global_components.append(
             {
                 "symbol": symbol,
                 "label": label,
                 "raw_change_percent": quote.change_percent,
                 "orientation": orientation,
+                "weight": weight,
                 "adjusted_change_percent": adjusted,
+                "weighted_contribution": adjusted * weight,
                 "source": quote.source,
             }
         )
 
-    global_composite = mean(global_values) if global_values else None
+    global_composite = (weighted_sum / available_weight) if available_weight else None
 
     adr_changes = [
         quote.change_percent
