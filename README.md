@@ -143,3 +143,19 @@ EUR/BRL ÷ EUR/USD
 ```
 
 A razão elimina o euro e produz uma cotação cruzada em BRL por USD. O card permanece `N/D` se qualquer uma das duas pernas estiver ausente; não há fallback fixo.
+
+## Terminal de análise do dólar / PTAX
+
+A rota `/dolar/` foi adicionada para concentrar a leitura do WDO. O módulo separa:
+
+- PTAX anterior, prévias 10h/11h/12h/13h e PTAX vigente;
+- projeção neutra da PTAX e média restante necessária para um alvo;
+- preço justo do futuro via diferencial composto de taxa brasileira e Treasury 1Y;
+- prêmio/desconto do WDO contra o justo;
+- proxy de abertura e faixa configurável em pontos;
+- leitura de DXY, VIX, EWZ, Dow Jones e score existente de WDO;
+- checklist de confirmação para daytrade.
+
+A projeção neutra não é probabilidade: quando faltam prévias, a última prévia conhecida é carregada para frente apenas como cenário-base. O campo de alvo responde à pergunta inversa: qual média das consultas restantes seria necessária para terminar no alvo.
+
+A coleta BCB também preserva as prévias do dia encontradas no endpoint público e a referência PTAX anterior, permitindo alimentar automaticamente a tela sem depender de RTD/Profit.

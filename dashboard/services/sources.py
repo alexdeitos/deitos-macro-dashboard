@@ -164,6 +164,32 @@ class BancoCentralSource:
                 sell = parse_number(latest.get("cotacaoVenda"))
                 midpoint = (buy + sell) / 2 if buy is not None and sell is not None else sell or buy
                 if midpoint is not None:
+                    bulletin_rows = []
+                    for item in values:
+                        try:
+                            item_dt = parse_iso_datetime(item.get("dataHoraCotacao"))
+                        except Exception:
+                            continue
+                        item_buy = parse_number(item.get("cotacaoCompra"))
+                        item_sell = parse_number(item.get("cotacaoVenda"))
+                        item_mid = (item_buy + item_sell) / 2 if item_buy is not None and item_sell is not None else item_sell or item_buy
+                        if item_mid is not None:
+                            bulletin_rows.append({
+                                "observed_at": item_dt.isoformat(),
+                                "hour": item_dt.hour,
+                                "tipo_boletim": item.get("tipoBoletim"),
+                                "buy": item_buy,
+                                "sell": item_sell,
+                                "midpoint": item_mid,
+                            })
+                    bulletin_rows.sort(key=lambda row: row["observed_at"])
+                    today_rows = [row for row in bulletin_rows if row["observed_at"][:10] == end.isoformat()]
+                    previous_rows = [row for row in bulletin_rows if row["observed_at"][:10] < end.isoformat()]
+                    previous_ptax = previous_rows[-1]["midpoint"] if previous_rows else None
+                    intra_day = {}
+                    for row in today_rows:
+                        if row["hour"] in (10, 11, 12, 13):
+                            intra_day[row["hour"]] = row
                     quotes.append(
                         Quote(
                             symbol="PTAX_USD_BRL",
@@ -180,6 +206,8 @@ class BancoCentralSource:
                                 "cotacao_compra": buy,
                                 "cotacao_venda": sell,
                                 "tipo_boletim": latest.get("tipoBoletim"),
+                                "previous_ptax_midpoint": previous_ptax,
+                                "today_bulletins": [intra_day[key] for key in sorted(intra_day)],
                             },
                         )
                     )

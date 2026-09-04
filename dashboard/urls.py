@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import diary_views, views
+from . import diary_views, dollar_views, views
 
 app_name = "dashboard"
 
@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("validacao/", views.validation, name="validation"),
     path("diario/", diary_views.trade_diary, name="trade_diary"),
+    path("dolar/", dollar_views.dollar_analysis, name="dollar_analysis"),
     path("diario/prints/<int:trade_id>/", diary_views.trade_screenshot, name="trade_screenshot"),
     path("api/dashboard/", views.api_dashboard, name="api_dashboard"),
     path("api/refresh/", views.api_refresh, name="api_refresh"),
@@ -17,6 +18,7 @@ urlpatterns = [
     path("api/calendar/refresh/", views.api_refresh_calendar, name="api_refresh_calendar"),
     path("api/tasks/<str:task_id>/", views.api_task_status, name="api_task_status"),
     path("api/raw/", views.api_raw_snapshot, name="api_raw_snapshot"),
+    path("api/dollar-analysis/", dollar_views.api_dollar_analysis, name="api_dollar_analysis"),
     path("api/trade/accounts/", diary_views.api_trade_accounts, name="api_trade_accounts"),
     path("api/trade/accounts/<int:account_id>/", diary_views.api_trade_account_detail, name="api_trade_account_detail"),
     path("api/trade/setups/", diary_views.api_trade_setups, name="api_trade_setups"),

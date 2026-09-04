@@ -1,0 +1,123 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Dólar / PTAX — Macro Dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/dollar_analysis.css' %}">{% endblock %}
+{% block extra_js %}<script defer src="{% static 'dashboard/js/dollar_analysis.js' %}"></script>{% endblock %}
+{% block content %}
+<div class="dollar-page">
+    <section class="dollar-hero">
+        <div>
+            <span class="dollar-kicker">WDO · PTAX · PARIDADE · DAYTRADE</span>
+            <h1>Terminal de análise do dólar</h1>
+            <p>Calculadora manual da PTAX + modelo automático do projeto, com leitura de prêmio/desconto, preço justo, faixa de abertura e gatilhos de confirmação.</p>
+        </div>
+        <div class="dollar-hero-actions">
+            <div id="dollarDataStatus" class="dollar-status neutral">Aguardando snapshot</div>
+            <button id="dollarRefresh" class="button" type="button">Atualizar snapshot</button>
+        </div>
+    </section>
+
+    <section class="dollar-grid dollar-grid-top">
+        <article class="dollar-card spotlight">
+            <div class="card-heading"><div><span class="micro-label">WDO</span><h2>Preço x justo</h2></div><span id="autoStretch" class="dollar-badge neutral">N/D</span></div>
+            <div class="hero-metric" id="autoFuture">N/D</div>
+            <div class="metric-sub" id="autoFutureMeta">Preço futuro · N/D</div>
+            <div class="comparison-row">
+                <div><span>Justo teórico</span><strong id="autoFair">N/D</strong></div>
+                <div><span>Desvio</span><strong id="autoDeviation">N/D</strong></div>
+                <div><span>PTAX</span><strong id="autoPtax">N/D</strong></div>
+            </div>
+        </article>
+
+        <article class="dollar-card">
+            <div class="card-heading"><div><span class="micro-label">CONTEXTO</span><h2>Leitura macro</h2></div><span id="autoWdoBias" class="dollar-badge neutral">N/D</span></div>
+            <div class="context-grid">
+                <div><span>DXY</span><strong id="autoDxy">N/D</strong></div>
+                <div><span>VIX</span><strong id="autoVix">N/D</strong></div>
+                <div><span>EWZ</span><strong id="autoEwz">N/D</strong></div>
+                <div><span>Dow Jones</span><strong id="autoDow">N/D</strong></div>
+                <div><span>Score WDO</span><strong id="autoScore">N/D</strong></div>
+                <div><span>Confiança</span><strong id="autoConfidence">N/D</strong></div>
+            </div>
+            <p id="autoMacroNote" class="muted compact-note">Aguardando dados reais.</p>
+        </article>
+
+        <article class="dollar-card">
+            <div class="card-heading"><div><span class="micro-label">NÍVEIS</span><h2>Mapa operacional</h2></div><span id="autoPtaxState" class="dollar-badge neutral">N/D</span></div>
+            <div class="level-list" id="autoLevels"></div>
+        </article>
+    </section>
+
+    <section class="dollar-section-title"><div><span class="dollar-kicker">MÓDULO 01</span><h2>Calculadora PTAX em tempo real</h2></div><p>Digite os valores diretamente. O cálculo é local no navegador e atualiza a cada alteração.</p></section>
+
+    <section class="dollar-grid calculator-grid">
+        <article class="dollar-card calculator-card">
+            <div class="card-heading"><div><span class="micro-label">ENTRADAS</span><h2>Referências</h2></div><button id="useAutoValues" type="button" class="mini-button">Usar snapshot</button></div>
+            <div class="input-grid">
+                <label><span>WDO atual (pontos)</span><input id="inFuture" type="text" inputmode="decimal" placeholder="5.200,0"></label>
+                <label><span>Dólar comercial (pontos)</span><input id="inSpot" type="text" inputmode="decimal" placeholder="5.180,0"></label>
+                <label><span>PTAX anterior</span><input id="inPreviousPtax" type="text" inputmode="decimal" placeholder="5,1800"></label>
+                <label><span>PTAX alvo</span><input id="inTargetPtax" type="text" inputmode="decimal" placeholder="5,2000"></label>
+                <label><span>Selic (% a.a.)</span><input id="inSelic" type="text" inputmode="decimal" placeholder="14,25"></label>
+                <label><span>Treasury 1Y (% a.a.)</span><input id="inUs1y" type="text" inputmode="decimal" placeholder="3,80"></label>
+                <label><span>Dias úteis até vencimento</span><input id="inDays" type="text" inputmode="numeric" placeholder="17"></label>
+                <label><span>Overnight / ajuste (%)</span><input id="inOvernight" type="text" inputmode="decimal" placeholder="0,00"></label>
+                <label><span>Faixa em pontos</span><input id="inRange" type="text" inputmode="decimal" value="24"></label>
+                <label><span>FRP0 (pontos)</span><input id="inFrp0" type="text" inputmode="decimal" placeholder="0,0"></label>
+            </div>
+        </article>
+
+        <article class="dollar-card ptax-card">
+            <div class="card-heading"><div><span class="micro-label">FIXING</span><h2>Quatro prévias</h2></div><span class="mini-note">Janelas BCB</span></div>
+            <div class="ptax-inputs">
+                <label><span>PTAX 1 · 10h</span><input id="inPtax1" type="text" inputmode="decimal" placeholder="5,2000"></label>
+                <label><span>PTAX 2 · 11h</span><input id="inPtax2" type="text" inputmode="decimal" placeholder="5,2050"></label>
+                <label><span>PTAX 3 · 12h</span><input id="inPtax3" type="text" inputmode="decimal" placeholder="5,2100"></label>
+                <label><span>PTAX 4 · 13h</span><input id="inPtax4" type="text" inputmode="decimal" placeholder="5,2150"></label>
+            </div>
+            <div class="symmetry-box"><span>Para terminar no alvo, a média das prévias restantes precisa ser</span><strong id="manualRequiredRemaining">N/D</strong></div>
+            <div class="ptax-progress"><div id="ptaxProgressBar" class="ptax-progress-bar"></div></div>
+            <div class="fixing-table" id="manualFixingTable"></div>
+        </article>
+
+        <article class="dollar-card result-card">
+            <div class="card-heading"><div><span class="micro-label">RESULTADO</span><h2>PTAX projetada</h2></div><span id="manualPtaxState" class="dollar-badge neutral">N/D</span></div>
+            <div class="hero-metric" id="manualProjection">N/D</div>
+            <div class="comparison-row compact-comparison">
+                <div><span>Média conhecida</span><strong id="manualAverage">N/D</strong></div>
+                <div><span>Vs PTAX anterior</span><strong id="manualVsPrevious">N/D</strong></div>
+                <div><span>WDO − PTAX</span><strong id="manualFutureVsPtax">N/D</strong></div>
+            </div>
+            <p class="result-note">A projeção é neutra: mantém a última prévia conhecida para as consultas ainda não preenchidas. Use o campo <b>PTAX alvo</b> para inverter a pergunta e descobrir qual média restante seria necessária.</p>
+        </article>
+    </section>
+
+    <section class="dollar-section-title"><div><span class="dollar-kicker">MÓDULO 02</span><h2>Preço justo, abertura e faixa</h2></div><p>Modelo determinístico. Não transforma o cálculo em probabilidade.</p></section>
+    <section class="dollar-grid three-col">
+        <article class="dollar-card"><span class="micro-label">PARIDADE</span><h2>Forward teórico</h2><div class="big-number" id="manualFairForward">N/D</div><div class="metric-sub" id="manualFairBasis">Base teórica: N/D</div><div id="manualFairStretch" class="insight-box">Aguardando entradas.</div></article>
+        <article class="dollar-card"><span class="micro-label">ABERTURA</span><h2>Proxy de abertura</h2><div class="big-number" id="manualOpening">N/D</div><div class="metric-sub">Ajuste do WDO pelo overnight informado</div><div class="range-line"><span id="manualLow">N/D</span><div class="range-track"><span id="manualRangeMarker"></span></div><span id="manualHigh">N/D</span></div></article>
+        <article class="dollar-card"><span class="micro-label">DESVIO</span><h2>WDO vs justo</h2><div class="big-number" id="manualDeviation">N/D</div><div class="metric-sub" id="manualDeviationPct">N/D</div><div id="manualDeviationInsight" class="insight-box">Aguardando entradas.</div></article>
+    </section>
+
+    <section class="dollar-section-title"><div><span class="dollar-kicker">MÓDULO 03</span><h2>Insights para decisão rápida</h2></div><p>Use como checklist de confluência, nunca como gatilho isolado.</p></section>
+    <section class="dollar-grid insight-grid">
+        <article class="dollar-card"><div class="card-heading"><div><span class="micro-label">AUTOMÁTICO</span><h2>O que está favorecendo alta do dólar</h2></div></div><div id="bullishInsights" class="insight-list"><span class="muted">N/D</span></div></article>
+        <article class="dollar-card"><div class="card-heading"><div><span class="micro-label">AUTOMÁTICO</span><h2>O que está favorecendo queda</h2></div></div><div id="bearishInsights" class="insight-list"><span class="muted">N/D</span></div></article>
+        <article class="dollar-card"><div class="card-heading"><div><span class="micro-label">ATENÇÃO</span><h2>Armadilhas / confirmação</h2></div></div><div id="cautionInsights" class="insight-list"><span class="muted">N/D</span></div></article>
+    </section>
+
+    <section class="dollar-card decision-card">
+        <div class="card-heading"><div><span class="micro-label">PROTOCOLO</span><h2>Sequência de leitura WDO</h2></div><span id="decisionState" class="dollar-badge neutral">aguardar confirmação</span></div>
+        <div id="decisionFramework" class="decision-steps"></div>
+        <div class="decision-footer">Confirmação operacional: preço + volume + VWAP + estrutura de abertura. O painel não emite ordem.</div>
+    </section>
+
+    <section class="methodology-card">
+        <h2>Metodologia e limites</h2>
+        <p><b>PTAX:</b> quatro consultas em janelas de 10 minutos, com início aleatório dentro de cada janela; a taxa diária é formada pela média das taxas apuradas nas consultas. O site aceita as prévias manualmente e explicita o que é observado versus projetado.</p>
+        <p><b>Preço justo:</b> diferencial composto entre taxa brasileira anualizada base 252 e Treasury 1Y, aplicado aos dias úteis informados. O prazo deve ser conferido com o vencimento real do contrato.</p>
+        <p><b>Daytrade:</b> prêmio/desconto, PTAX e macro são contexto. O gatilho continua sendo comportamento do preço e fluxo. Não há probabilidade inventada, previsão estatística artificial ou dado substituto quando uma fonte não existe.</p>
+        <div class="source-row"><a href="https://www.bcb.gov.br/estabilidadefinanceira/exibenormativo?numero=45&tipo=Resolução%20BCB" target="_blank" rel="noopener">BCB · Resolução 45/2020</a><a href="https://www.b3.com.br/data/files/56/E3/EE/9B/FF472710547B5127AC094EA8/Manual_de_Aprecamento_-_Futuros_V18.pdf" target="_blank" rel="noopener">B3 · Manual de Apreçamento</a><a href="https://www.b3.com.br/data/files/E3/B0/AB/E8/EA8EE810C54843E8DC0D8AA8/OC%20058-2024%20PRE%20Contratos%20FE%20-%20Moedas%20-%20vf%20%28PT%29.pdf" target="_blank" rel="noopener">B3 · Especificação WDO</a></div>
+    </section>
+</div>
+{% endblock %}
