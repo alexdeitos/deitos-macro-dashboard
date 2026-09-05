@@ -103,6 +103,56 @@
     <article class="card win-opening-estimate"><span>Abertura WIN</span><strong id="qWIN_OPENING">N/D</strong><small id="cWIN_OPENING">Aguardando Ibovespa e Dow Jones (driver principal)</small></article>
 </section>
 
+<section class="panel index-opening-model" id="indexOpeningModel">
+    <div class="index-opening-header">
+        <div>
+            <span class="index-eyebrow">WIN · MODELO MULTIFATORIAL</span>
+            <h2>Abertura provável do Mini Índice</h2>
+            <p class="muted">Dow Jones como principal driver americano, S&amp;P como confirmação, com EWZ, VIX, DXY, minério, Brent e ADRs. Somente dados reais disponíveis entram no cálculo.</p>
+        </div>
+        <div id="indexOpeningSnapshot" class="pill partial">Aguardando cálculo</div>
+    </div>
+
+    <div class="index-opening-grid">
+        <article class="index-result-card" id="indexResultCard">
+            <div class="index-result-top">
+                <div>
+                    <span class="index-eyebrow">Estimativa central</span>
+                    <strong id="indexOpeningEstimate">N/D</strong>
+                </div>
+                <div class="index-result-badges">
+                    <span id="indexBias" class="pill partial">Indisponível</span>
+                    <span id="indexStrength" class="pill partial">Indisponível</span>
+                </div>
+            </div>
+            <div class="index-value-row">
+                <div><span>Fair value</span><strong id="indexFairValue">N/D</strong></div>
+                <div><span>Base</span><strong id="indexBase">N/D</strong></div>
+                <div><span>WIN observado</span><strong id="indexObserved">N/D</strong></div>
+                <div><span>Desvio</span><strong id="indexDeviation">N/D</strong></div>
+            </div>
+            <div class="index-confidence">
+                <span id="indexConfidence">Confiança: N/D</span>
+                <span id="indexCoverage">Cobertura: N/D</span>
+            </div>
+        </article>
+
+        <article class="index-detail-card">
+            <div class="macro-section-title">Drivers do modelo</div>
+            <div id="indexComponents" class="macro-components"></div>
+        </article>
+
+        <article class="index-detail-card">
+            <div class="macro-section-title">Leitura operacional</div>
+            <div id="indexOperationalRead" class="index-operational-read">Aguardando dados.</div>
+            <div class="index-weight-grid" id="indexWeights"></div>
+        </article>
+    </div>
+
+    <div id="indexMissing" class="message warning" hidden></div>
+    <div id="indexDisclaimer" class="message warning">Modelo multifatorial; não é probabilidade de acerto.</div>
+</section>
+
 <section class="panel macro-opening-panel" id="macroOpeningPanel">
     <div class="macro-opening-header">
         <div>

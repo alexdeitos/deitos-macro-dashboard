@@ -1461,6 +1461,116 @@
             );
     }
 
+    function renderIndexOpening(data, collectedAt) {
+        const estimate = toNumeric(data?.opening_estimate_points);
+        const fair = toNumeric(data?.fair_value_points);
+        const base = toNumeric(data?.base_points);
+        const observed = toNumeric(data?.observed_points);
+        const deviation = toNumeric(data?.deviation_points);
+        const expectedPct = toNumeric(data?.expected_change_percent);
+        const confidence = data?.confidence || {};
+
+        const resultCard = byId("indexResultCard");
+        const estimateNode = byId("indexOpeningEstimate");
+        const fairNode = byId("indexFairValue");
+        const baseNode = byId("indexBase");
+        const observedNode = byId("indexObserved");
+        const deviationNode = byId("indexDeviation");
+        const biasNode = byId("indexBias");
+        const strengthNode = byId("indexStrength");
+        const confidenceNode = byId("indexConfidence");
+        const coverageNode = byId("indexCoverage");
+        const snapshotNode = byId("indexOpeningSnapshot");
+        const readNode = byId("indexOperationalRead");
+        const missingNode = byId("indexMissing");
+        const disclaimerNode = byId("indexDisclaimer");
+        const componentsNode = byId("indexComponents");
+        const weightsNode = byId("indexWeights");
+
+        let resultClass = "neutral";
+        if (expectedPct !== null) {
+            resultClass = expectedPct > 0.15 ? "positive" : expectedPct < -0.15 ? "negative" : "neutral";
+        }
+        if (resultCard) resultCard.className = `index-result-card ${resultClass}`;
+
+        if (estimateNode) estimateNode.textContent = estimate === null ? "N/D" : number(estimate, 3);
+        if (fairNode) fairNode.textContent = fair === null ? "N/D" : number(fair, 3);
+        if (baseNode) baseNode.textContent = base === null ? "N/D" : number(base, 3);
+        if (observedNode) observedNode.textContent = observed === null ? "N/D" : number(observed, 3);
+
+        if (deviationNode) {
+            deviationNode.textContent = deviation === null ? "N/D" : `${deviation > 0 ? "+" : ""}${number(deviation, 3)} pts`;
+            deviationNode.className = deviation > 0 ? "positive" : deviation < 0 ? "negative" : "";
+        }
+
+        const bias = data?.bias || "dados insuficientes";
+        const strength = data?.strength || "indisponível";
+        if (biasNode) {
+            biasNode.textContent = bias;
+            biasNode.className = `pill ${resultClass === "positive" ? "ok" : resultClass === "negative" ? "error" : "partial"}`;
+        }
+        if (strengthNode) {
+            strengthNode.textContent = strength;
+            strengthNode.className = `pill ${resultClass === "positive" ? "ok" : resultClass === "negative" ? "error" : "partial"}`;
+        }
+
+        if (confidenceNode) confidenceNode.textContent = `Confiança: ${confidence.label || "N/D"}`;
+        if (coverageNode) {
+            coverageNode.textContent = `Cobertura: ${confidence.coverage_percent == null ? "N/D" : number(confidence.coverage_percent, 1) + "%"}`;
+        }
+
+        if (snapshotNode) {
+            snapshotNode.textContent = validTimestamp(collectedAt)
+                ? `Snapshot ${new Date(collectedAt).toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"})}`
+                : "Horário indisponível";
+            snapshotNode.className = `pill ${(data?.missing_components || []).length ? "partial" : "ok"}`;
+        }
+
+        if (readNode) {
+            if (estimate === null || fair === null) {
+                readNode.textContent = "Sem base suficiente para estimar a abertura. Não interpretar ausência de dados como sinal.";
+            } else if (Math.abs(deviation || 0) >= 250) {
+                const side = deviation < 0 ? "abaixo" : "acima";
+                readNode.textContent = `O WIN observado está ${number(Math.abs(deviation), 0)} pontos ${side} do fair value calculado. Use a diferença como contexto e aguarde confirmação de preço, volume e VWAP; não é uma entrada automática.`;
+            } else {
+                readNode.textContent = `Fair value próximo do WIN observado. O modelo aponta ${bias}, com retorno estimado de ${expectedPct === null ? "N/D" : (expectedPct > 0 ? "+" : "") + number(expectedPct, 2) + "%"}. A confirmação deve ocorrer no preço após a abertura.`;
+            }
+        }
+
+        const rows = (data?.components || []).slice().sort(
+            (a, b) => Math.abs(toNumeric(b.weighted_contribution_percent) || 0) - Math.abs(toNumeric(a.weighted_contribution_percent) || 0)
+        );
+        if (componentsNode) {
+            componentsNode.innerHTML = rows.length
+                ? rows.map(item => {
+                    const contribution = toNumeric(item.weighted_contribution_percent) || 0;
+                    const raw = toNumeric(item.raw_change_percent);
+                    return `
+                        <div class="component">
+                            <span>${escapeHtml(item.label || item.symbol)}<small style="display:block">Peso ${number((toNumeric(item.weight) || 0) * 100, 1)}% · Real ${percent(raw)}</small></span>
+                            <strong class="${contribution > 0 ? "positive" : contribution < 0 ? "negative" : ""}">${contribution > 0 ? "+" : ""}${number(contribution, 3)}%</strong>
+                        </div>`;
+                }).join("")
+                : '<div class="muted">Nenhum driver disponível.</div>';
+        }
+
+        if (weightsNode) {
+            const weights = data?.weights || {};
+            weightsNode.innerHTML = Object.entries(weights).map(([label, weight]) =>
+                `<span>${escapeHtml(label)} <strong>${number((toNumeric(weight) || 0) * 100, 0)}%</strong></span>`
+            ).join("");
+        }
+
+        const missing = data?.missing_components || [];
+        if (missingNode) {
+            missingNode.hidden = missing.length === 0;
+            missingNode.textContent = missing.length ? `Cobertura parcial. Ausentes: ${missing.join(", ")}. Nenhum valor substituto foi usado.` : "";
+        }
+        if (disclaimerNode) {
+            disclaimerNode.textContent = data?.disclaimer || "Modelo multifatorial; não é probabilidade de acerto.";
+        }
+    }
+
     function renderDashboard(data) {
         renderQuotes(
             data.quotes || {}
@@ -1477,6 +1587,11 @@
 
         renderOpeningAnalysis(
             data.opening_analysis || {},
+            data.collected_at
+        );
+
+        renderIndexOpening(
+            data.index_opening || {},
             data.collected_at
         );
 
