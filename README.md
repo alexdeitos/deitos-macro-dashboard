@@ -159,3 +159,9 @@ A rota `/dolar/` foi adicionada para concentrar a leitura do WDO. O módulo sepa
 A projeção neutra não é probabilidade: quando faltam prévias, a última prévia conhecida é carregada para frente apenas como cenário-base. O campo de alvo responde à pergunta inversa: qual média das consultas restantes seria necessária para terminar no alvo.
 
 A coleta BCB também preserva as prévias do dia encontradas no endpoint público e a referência PTAX anterior, permitindo alimentar automaticamente a tela sem depender de RTD/Profit.
+
+## Análise EUA / FED
+
+Nova aba no menu: **Análise EUA**, posicionada após **PTAX** e antes do **Diário Trade**. O módulo lê séries FRED dinamicamente, gera gráficos Plotly e calcula leitura macro explicável para contexto de WDO.
+
+Configure `FRED_API_KEY` no `.env` para ativar os dados.

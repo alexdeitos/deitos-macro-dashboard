@@ -22,8 +22,9 @@
     </div>
     <nav>
         <a href="{% url 'dashboard:index' %}">Dashboard</a>
+        <a href="{% url 'dashboard:dollar_analysis' %}">PTAX</a>
+        <a href="{% url 'dashboard:fed_analysis' %}">Análise EUA</a>
         <a href="{% url 'dashboard:trade_diary' %}">Diário Trade</a>
-        <a href="{% url 'dashboard:dollar_analysis' %}">Dólar / PTAX</a>
         <a href="{% url 'dashboard:validation' %}">Validação</a>
         <a href="{% url 'dashboard:api_raw_snapshot' %}" target="_blank" rel="noopener">JSON bruto</a>
     </nav>

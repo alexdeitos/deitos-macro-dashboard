@@ -1,0 +1,70 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Análise EUA / FED — Macro Dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/fed_analysis.css' %}">{% endblock %}
+{% block extra_js %}<script defer src="{% static 'dashboard/js/fed_analysis.js' %}"></script>{% endblock %}
+{% block content %}
+<div class="fed-page">
+    <section class="fed-hero">
+        <div>
+            <span class="dollar-kicker">EUA · FED · FRED · WDO</span>
+            <h1>Análise EUA</h1>
+            <p>Leitura dinâmica do ciclo de juros, curva de Treasuries, inflação, emprego e balanço do Fed, transformada em contexto operacional para o dólar.</p>
+        </div>
+        <div class="fed-actions">
+            <span id="fedStatus" class="fed-status">Carregando FRED…</span>
+            <button id="fedRefresh" class="button" type="button">Atualizar FRED</button>
+        </div>
+    </section>
+
+    <section class="fed-grid cards-4">
+        <article class="fed-card kpi"><span>Fed Funds</span><strong id="kpiDff">N/D</strong><small id="kpiDffMeta">—</small></article>
+        <article class="fed-card kpi"><span>Treasury 10Y</span><strong id="kpiDgs10">N/D</strong><small id="kpiDgs10Meta">—</small></article>
+        <article class="fed-card kpi"><span>Spread 10Y−2Y</span><strong id="kpiSpread">N/D</strong><small id="kpiSpreadMeta">—</small></article>
+        <article class="fed-card kpi"><span>CPI YoY</span><strong id="kpiCpi">N/D</strong><small id="kpiCpiMeta">—</small></article>
+    </section>
+
+    <section class="fed-grid top-reading">
+        <article class="fed-card reading-card">
+            <div class="card-heading"><div><span class="micro-label">FED → WDO</span><h2>Viés macro</h2></div><span id="fedBias" class="fed-badge neutral">N/D</span></div>
+            <div class="fed-score" id="fedScore">N/D</div>
+            <p id="fedBiasText" class="reading-text">Aguardando dados.</p>
+            <div id="fedDrivers" class="insight-list"></div>
+        </article>
+        <article class="fed-card reading-card">
+            <div class="card-heading"><div><span class="micro-label">POLÍTICA MONETÁRIA</span><h2>2Y vs Fed Funds</h2></div></div>
+            <div class="big-number" id="policyGap">N/D</div>
+            <p id="policyGapText" class="reading-text">—</p>
+            <div class="signal-strip"><span>Hawkish</span><div id="policyNeedle"></div><span>Dovish</span></div>
+        </article>
+        <article class="fed-card reading-card">
+            <div class="card-heading"><div><span class="micro-label">INFLAÇÃO</span><h2>CPI vs PCE</h2></div></div>
+            <div class="inflation-pair"><div><small>CPI YoY</small><strong id="inflCpi">N/D</strong></div><div><small>PCE YoY</small><strong id="inflPce">N/D</strong></div><div><small>Breakeven 10Y</small><strong id="inflBreakeven">N/D</strong></div></div>
+            <p id="inflationText" class="reading-text">—</p>
+        </article>
+    </section>
+
+    <section class="fed-section-title"><div><span class="dollar-kicker">GRÁFICO 01</span><h2>Juros e curva</h2></div><p>Use a curva para identificar mudança de expectativa de política e regime macro.</p></section>
+    <section class="fed-chart-grid">
+        <article class="fed-card chart-card"><div class="chart-head"><h3>2Y · 10Y · Fed Funds</h3><span>FRED · 3 anos</span></div><div id="ratesChart"></div></article>
+        <article class="fed-card chart-card"><div class="chart-head"><h3>Spread 10Y−2Y</h3><span>pp</span></div><div id="spreadChart"></div></article>
+    </section>
+
+    <section class="fed-section-title"><div><span class="dollar-kicker">GRÁFICO 02</span><h2>Inflação e emprego</h2></div><p>O objetivo aqui é medir a direção dos dados, não prever uma reunião isoladamente.</p></section>
+    <section class="fed-chart-grid">
+        <article class="fed-card chart-card"><div class="chart-head"><h3>CPI YoY · PCE YoY · Breakeven</h3><span>%</span></div><div id="inflationChart"></div></article>
+        <article class="fed-card chart-card"><div class="chart-head"><h3>Desemprego e Payrolls</h3><span>mercado de trabalho</span></div><div id="laborChart"></div></article>
+    </section>
+
+    <section class="fed-section-title"><div><span class="dollar-kicker">GRÁFICO 03</span><h2>Balanço e liquidez do Fed</h2></div><p>Ativos do Fed e ON RRP ajudam a enquadrar a liquidez; não substituem fluxo intraday.</p></section>
+    <section class="fed-chart-grid">
+        <article class="fed-card chart-card"><div class="chart-head"><h3>Ativos totais do Fed</h3><span>US$ trilhões</span></div><div id="balanceChart"></div></article>
+        <article class="fed-card chart-card"><div class="chart-head"><h3>ON RRP</h3><span>US$ trilhões</span></div><div id="rrpChart"></div></article>
+    </section>
+
+    <section class="fed-grid bottom-grid">
+        <article class="fed-card"><span class="micro-label">DIA DE TRADE</span><h2>Como usar antes do WDO</h2><div id="tradePlaybook" class="playbook"></div></article>
+        <article class="fed-card"><span class="micro-label">FONTE / QUALIDADE</span><h2>Status dos dados</h2><div id="fedErrors" class="status-list"></div><p class="source-note">Fonte: FRED, Federal Reserve Bank of St. Louis. A API de observações exige uma chave FRED configurada no servidor. </p></article>
+    </section>
+</div>
+{% endblock %}
