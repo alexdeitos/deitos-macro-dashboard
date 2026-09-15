@@ -10,7 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from dashboard.models import CollectionRun, MarketPoint, MarketSnapshot
+from dashboard.models import CapturePoint, CollectionRun, MarketPoint, MarketSnapshot
 
 LATEST_CACHE_KEY = "market-dashboard:latest"
 HISTORY_SYMBOLS = ("USD_BRL", "DXY", "IBOV", "EWZ", "DJI", "SP500", "VIX")
@@ -188,8 +188,10 @@ def cleanup_old_data() -> dict[str, int]:
     points_deleted = MarketPoint.objects.filter(observed_at__lt=cutoff).delete()[0]
     snapshots_deleted = MarketSnapshot.objects.filter(collected_at__lt=cutoff).delete()[0]
     runs_deleted = CollectionRun.objects.filter(started_at__lt=cutoff).delete()[0]
+    captures_deleted = CapturePoint.objects.filter(observed_at__lt=cutoff).delete()[0]
     return {
         "points_deleted": points_deleted,
         "snapshots_deleted": snapshots_deleted,
         "runs_deleted": runs_deleted,
+        "captures_deleted": captures_deleted,
     }

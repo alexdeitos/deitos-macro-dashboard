@@ -27,7 +27,7 @@
         return {x: rows.dates || [], y: rows.values || [], name: label, mode:"lines", type:"scatter", line:{width:2}};
     }
 
-    const layout = (title, yTitle) => ({title:{text:title, font:{size:12}}, paper_bgcolor:"transparent", plot_bgcolor:"transparent", font:{color:"#d8e2ef", size:10}, margin:{l:46,r:12,t:34,b:38}, hovermode:"x unified", xaxis:{gridcolor:"rgba(145,162,186,.10)", rangeslider:{visible:false}}, yaxis:{title:yTitle || "", gridcolor:"rgba(145,162,186,.10)"}, legend:{orientation:"h", y:1.12}, showlegend:true});
+    const layout = (title, yTitle) => ({title:{text:title, font:{size:12}}, paper_bgcolor:"transparent", plot_bgcolor:"transparent", font:{color:"#d8e2ef", size:10}, hoverlabel:{bgcolor:"#ffffff",bordercolor:"#d1d5db",font:{color:"#111827"}}, margin:{l:46,r:12,t:34,b:38}, hovermode:"x unified", xaxis:{gridcolor:"rgba(145,162,186,.10)", rangeslider:{visible:false}}, yaxis:{title:yTitle || "", gridcolor:"rgba(145,162,186,.10)"}, legend:{orientation:"h", y:1.12}, showlegend:true});
     const config = {responsive:true, displaylogo:false, modeBarButtonsToRemove:["lasso2d","select2d"]};
 
     function render(data) {

@@ -73,6 +73,28 @@ class MarketPoint(models.Model):
         return f"{self.symbol} @ {self.observed_at:%Y-%m-%d %H:%M}"
 
 
+class CapturePoint(models.Model):
+    observed_at = models.DateTimeField(db_index=True)
+    sheet_name = models.CharField(max_length=80, db_index=True)
+    symbol = models.CharField(max_length=40, db_index=True)
+    value = models.FloatField(null=True, blank=True)
+    change_percent = models.FloatField(null=True, blank=True)
+    trades = models.FloatField(null=True, blank=True)
+    volume = models.FloatField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["observed_at", "symbol"]
+        indexes = [
+            models.Index(fields=["symbol", "observed_at"], name="dashboard_c_symbol_time_idx"),
+            models.Index(fields=["sheet_name", "observed_at"], name="dashboard_c_sheet_time_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.symbol} @ {self.observed_at:%Y-%m-%d %H:%M:%S}"
+
+
 class MarketNews(models.Model):
     source = models.CharField(max_length=50, default="Investing RSS", db_index=True)
     external_id = models.CharField(max_length=64, unique=True)
@@ -332,3 +354,59 @@ class TradeExit(models.Model):
 
     def __str__(self) -> str:
         return f"Saída {self.contracts} @ {self.price}"
+
+
+class PerformanceReport(models.Model):
+    filename = models.CharField(max_length=255)
+    account_label = models.CharField(max_length=120, blank=True)
+    holder_label = models.CharField(max_length=240, blank=True)
+    period_start = models.DateField(null=True, blank=True)
+    period_end = models.DateField(null=True, blank=True)
+    imported_at = models.DateTimeField(auto_now_add=True)
+    total_rows = models.PositiveIntegerField(default=0)
+    total_result = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-imported_at", "-id"]
+
+    def __str__(self):
+        return f"{self.filename} ({self.imported_at:%d/%m/%Y %H:%M})"
+
+
+class PerformanceTrade(models.Model):
+    report = models.ForeignKey(PerformanceReport, on_delete=models.CASCADE, related_name="trades")
+    row_number = models.PositiveIntegerField()
+    symbol = models.CharField(max_length=40, db_index=True)
+    opened_at = models.DateTimeField(db_index=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    duration_label = models.CharField(max_length=40, blank=True)
+    buy_qty = models.IntegerField(default=0)
+    sell_qty = models.IntegerField(default=0)
+    side = models.CharField(max_length=2, blank=True)
+    buy_price = models.DecimalField(max_digits=16, decimal_places=4, null=True, blank=True)
+    sell_price = models.DecimalField(max_digits=16, decimal_places=4, null=True, blank=True)
+    market_price = models.DecimalField(max_digits=16, decimal_places=4, null=True, blank=True)
+    gross_interval = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    gross_interval_pct = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    result = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    result_pct = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    tet = models.CharField(max_length=40, blank=True)
+    cumulative_total = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    justification = models.TextField(blank=True)
+    validation_score = models.PositiveSmallIntegerField(default=0)
+    setup_note = models.CharField(max_length=120, blank=True)
+    diary_trade = models.OneToOneField("Trade", on_delete=models.SET_NULL, null=True, blank=True, related_name="performance_import")
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-opened_at", "-id"]
+        indexes = [
+            models.Index(fields=["report", "opened_at"], name="perftrade_report_open_idx"),
+            models.Index(fields=["symbol", "opened_at"], name="perftrade_symbol_open_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.symbol} {self.opened_at:%d/%m/%Y %H:%M:%S} {self.result}"

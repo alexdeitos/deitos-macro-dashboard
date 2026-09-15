@@ -86,3 +86,10 @@ class CapitalMovementAdmin(admin.ModelAdmin):
     list_display = ("movement_date", "account", "kind", "amount", "description")
     list_filter = ("account", "kind")
     date_hierarchy = "movement_date"
+
+from .models import CapturePoint
+
+try:
+    admin.site.register(CapturePoint)
+except admin.sites.AlreadyRegistered:
+    pass

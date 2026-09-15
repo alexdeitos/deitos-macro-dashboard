@@ -9,13 +9,16 @@ from django.utils import timezone
 from .models import CollectionRun
 from .services.collector import CollectionUnavailable, MarketCollector
 from .services.economic_calendar import TradingEconomicsCalendarCollector
+from .services.investing_calendar import collect_investing_daytrade_calendar as sync_investing_daytrade_calendar
 from .services.news import InvestingNewsCollector
 from .services.persistence import cleanup_old_data, persist_payload
+from .services.capture_import import sync_live_workbook
 
 logger = logging.getLogger(__name__)
 COLLECTION_LOCK_KEY = "market-dashboard:collector-lock"
 NEWS_LOCK_KEY = "market-dashboard:news-collector-lock"
 CALENDAR_LOCK_KEY = "market-dashboard:economic-calendar-collector-lock"
+EXCEL_CAPTURE_LOCK_KEY = "market-dashboard:excel-capture-lock"
 
 
 @shared_task(
@@ -81,6 +84,11 @@ def collect_market_news() -> dict:
 
 
 @shared_task
+def collect_investing_daytrade_calendar() -> dict:
+    return sync_investing_daytrade_calendar(force=True)
+
+
+@shared_task
 def collect_economic_calendar() -> dict:
     if not cache.add(CALENDAR_LOCK_KEY, "1", timeout=300):
         return {"status": "skipped", "reason": "calendar_collection_already_running"}
@@ -88,3 +96,17 @@ def collect_economic_calendar() -> dict:
         return TradingEconomicsCalendarCollector().collect()
     finally:
         cache.delete(CALENDAR_LOCK_KEY)
+
+
+@shared_task
+def sync_excel_captures() -> dict:
+    """Read the live COTACOES workbook's CONFIG_CAPTURA every minute."""
+    if not cache.add(EXCEL_CAPTURE_LOCK_KEY, "1", timeout=55):
+        return {"status": "skipped", "reason": "excel_sync_already_running"}
+    try:
+        return sync_live_workbook()
+    except Exception as exc:
+        logger.exception("Falha na sincronização automática do Excel de capturas")
+        return {"status": "failed", "message": str(exc)}
+    finally:
+        cache.delete(EXCEL_CAPTURE_LOCK_KEY)

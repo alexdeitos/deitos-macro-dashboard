@@ -13,6 +13,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .models import CollectionRun
 from .services.collector import MarketCollector
 from .services.economic_calendar import TradingEconomicsCalendarCollector, calendar_payload
+from .services.daytrade import build_daytrade
 from .services.news import InvestingNewsCollector, news_payload
 from .services.persistence import get_latest_payload, history_payload, persist_payload
 from .services.remote_market import remote_market_enabled
@@ -49,6 +50,22 @@ def api_public_market_snapshot(request):
         json_dumps_params={"ensure_ascii": False},
     )
     
+@ensure_csrf_cookie
+@require_GET
+def daytrade(request):
+    return render(request, "dashboard/daytrade.html")
+
+
+@require_GET
+def api_daytrade(request):
+    return JsonResponse(build_daytrade(), json_dumps_params={"ensure_ascii": False})
+
+
+@require_POST
+def api_daytrade_refresh(request):
+    return JsonResponse(build_daytrade(force=True), json_dumps_params={"ensure_ascii": False})
+
+
 @require_GET
 def validation(request):
     payload = get_latest_payload()

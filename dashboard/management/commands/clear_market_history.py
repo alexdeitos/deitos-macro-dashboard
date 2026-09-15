@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from dashboard.models import CollectionRun, MarketPoint, MarketSnapshot
+from dashboard.models import CapturePoint, CollectionRun, MarketPoint, MarketSnapshot
 
 
 class Command(BaseCommand):
@@ -17,6 +17,7 @@ class Command(BaseCommand):
         points = MarketPoint.objects.all().delete()[0]
         snapshots = MarketSnapshot.objects.all().delete()[0]
         runs = CollectionRun.objects.all().delete()[0]
+        captures = CapturePoint.objects.all().delete()[0]
         self.stdout.write(self.style.SUCCESS(
-            f"Histórico removido: {points} pontos, {snapshots} snapshots e {runs} execuções."
+            f"Histórico removido: {points} pontos, {snapshots} snapshots, {runs} execuções e {captures} capturas do Excel."
         ))

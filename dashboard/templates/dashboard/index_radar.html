@@ -1,0 +1,69 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Radar do Índice — Macro Dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'dashboard/css/index_radar.css' %}">
+{% endblock %}
+{% block extra_js %}
+<script defer src="{% static 'dashboard/js/index_radar.js' %}"></script>
+{% endblock %}
+{% block content %}
+<section class="radar-hero panel">
+  <div>
+    <span class="radar-eyebrow">IBOV / WIN · CAPTURAS + MACRO</span>
+    <h1>Radar Direcional do Índice</h1>
+    <p class="muted">Cruza as cotações capturadas do Excel/Profit, peso teórico das ações do Ibovespa e drivers externos para produzir um viés operacional contextual.</p>
+  </div>
+  <div class="radar-actions">
+    <label class="upload-btn">Importar COTACOES.xlsm<input id="captureFile" type="file" accept=".xlsx,.xlsm,.xltx,.xltm" hidden></label>
+    <button id="refreshRadar" class="primary-button" type="button">Atualizar análise</button>
+  </div>
+</section>
+
+<section class="radar-kpis">
+  <article class="radar-kpi panel"><span>Viés atual</span><strong id="radarDirection">AGUARDAR</strong><small id="radarUpdated">—</small></article>
+  <article class="radar-kpi panel"><span>Score</span><strong id="radarScore">N/D</strong><small id="radarConfidence">Confiança: —</small></article>
+  <article class="radar-kpi panel"><span>Cobertura do IBOV</span><strong id="radarCoverage">N/D</strong><small id="radarAssets">0 / 0 ativos</small></article>
+  <article class="radar-kpi panel"><span>Acordo dos fatores</span><strong id="radarAgreement">N/D</strong><small id="radarSource">Excel/Profit: —</small></article>
+</section>
+
+<section class="radar-grid">
+  <article class="panel radar-main-card" id="radarMainCard">
+    <div class="radar-card-head"><div><span class="radar-eyebrow">PRESSÃO DAS AÇÕES</span><h2>Ibovespa ponderado</h2></div><span id="weightsSource" class="pill partial">Pesos: —</span></div>
+    <div class="pressure-grid">
+      <div><span>Variação ponderada</span><strong id="weightedChange">N/D</strong></div>
+      <div><span>Peso positivo</span><strong id="positiveWeight">N/D</strong></div>
+      <div><span>Peso negativo</span><strong id="negativeWeight">N/D</strong></div>
+    </div>
+    <div id="stockDrivers" class="driver-list"></div>
+  </article>
+
+  <article class="panel">
+    <div class="radar-card-head"><div><span class="radar-eyebrow">MACRO</span><h2>Drivers externos</h2></div></div>
+    <div id="externalDrivers" class="driver-list"></div>
+  </article>
+</section>
+
+<section class="radar-grid">
+  <article class="panel">
+    <div class="radar-card-head"><div><span class="radar-eyebrow">CORRELAÇÃO</span><h2>O que mais se relaciona com o índice</h2></div></div>
+    <p class="muted">Correlação de Pearson usando as capturas coincidentes do período recente. Ela mostra associação, não causalidade.</p>
+    <div id="correlationTable" class="correlation-table"></div>
+  </article>
+  <article class="panel">
+    <div class="radar-card-head"><div><span class="radar-eyebrow">LEITURA</span><h2>Como o modelo chegou ao viés</h2></div></div>
+    <div id="contextLines" class="context-lines"></div>
+    <div class="method-box"><strong>Regra de proteção:</strong> o radar só entrega viés. A entrada continua dependendo da estrutura do preço, VWAP, fluxo, liquidez e seu gatilho operacional.</div>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="radar-card-head"><div><span class="radar-eyebrow">TOP DRIVERS</span><h2>Ações que mais pressionam o índice agora</h2></div><span id="targetSymbol" class="pill partial">Alvo: —</span></div>
+  <div class="two-tables">
+    <div><h3>Compradoras</h3><div id="topPositive" class="driver-list"></div></div>
+    <div><h3>Vendedoras</h3><div id="topNegative" class="driver-list"></div></div>
+  </div>
+</section>
+
+<div id="radarMessage" class="message warning" hidden></div>
+{% endblock %}

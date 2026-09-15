@@ -1,0 +1,80 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Daytrade — Macro Dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/daytrade.css' %}">{% endblock %}
+{% block extra_js %}<script defer src="{% static 'dashboard/js/daytrade.js' %}"></script>{% endblock %}
+{% block content %}
+<div class="daytrade-shell">
+  <section class="dt-hero panel">
+    <div>
+      <span class="dt-kicker">DECISÃO INTRADAY · WIN</span>
+      <h1>Daytrade — Direção do Mercado</h1>
+      <p class="muted">Uma leitura operacional em camadas: ações ponderadas do Ibovespa, macro global, juros, amplitude e agenda econômica 3★ de hoje.</p>
+    </div>
+    <div class="dt-actions">
+      <span id="dtClock" class="dt-clock">—</span>
+      <button id="dtRefresh" class="primary-button" type="button">Atualizar</button>
+      <a class="secondary-button" href="{% url 'dashboard:index_radar' %}">Abrir Radar</a>
+    </div>
+  </section>
+
+  <section class="dt-decision panel" id="decisionPanel">
+    <div class="dt-decision-main">
+      <span class="dt-kicker">DIREÇÃO AGORA</span>
+      <div id="dtDirection" class="dt-direction neutral">AGUARDAR</div>
+      <div id="dtAction" class="dt-action">Aguardando dados...</div>
+    </div>
+    <div class="dt-decision-score">
+      <span>SCORE DIRECIONAL</span>
+      <strong id="dtScore">N/D</strong>
+      <small id="dtConfidence">Confluência: —</small>
+    </div>
+    <div class="dt-decision-state">
+      <span>ESTADO OPERACIONAL</span>
+      <strong id="dtState">—</strong>
+      <small id="dtFreshness">Captura: —</small>
+    </div>
+  </section>
+
+  <section class="dt-grid-5" id="componentGrid"></section>
+
+  <section class="dt-grid-2">
+    <article class="panel">
+      <div class="dt-card-head"><div><span class="dt-kicker">CONFLUÊNCIA</span><h2>O que está puxando o WIN</h2></div><span id="dtTarget" class="pill">—</span></div>
+      <div id="globalDrivers" class="dt-driver-list"></div>
+      <div class="dt-execution-box"><strong>Execução profissional</strong><span id="dtExecutionText">Viés não substitui gatilho. Confirme com estrutura, VWAP, fluxo e aceitação/rejeição do preço.</span></div>
+    </article>
+
+    <article class="panel">
+      <div class="dt-card-head"><div><span class="dt-kicker">PRESSÃO DOMÉSTICA</span><h2>Ações ponderadas</h2></div><span id="dtCoverage" class="pill">Cobertura —</span></div>
+      <div class="dt-mini-grid">
+        <div><span>Variação ponderada</span><strong id="dtWeighted">N/D</strong></div>
+        <div><span>Peso positivo</span><strong id="dtPositive">N/D</strong></div>
+        <div><span>Peso negativo</span><strong id="dtNegative">N/D</strong></div>
+      </div>
+      <div id="stockLeaders" class="dt-driver-list"></div>
+    </article>
+  </section>
+
+  <section class="panel dt-calendar-panel">
+    <div class="dt-card-head">
+      <div><span class="dt-kicker">AGENDA MACRO</span><h2>Dados econômicos 3★ — somente hoje</h2><p class="muted">Brasil, EUA e China. Anterior × consenso/projeção × atual, com leitura orientada ao índice.</p></div>
+      <span id="dtEventGate" class="event-gate neutral">—</span>
+    </div>
+    <div id="dtEvents" class="dt-events"></div>
+  </section>
+
+  <section class="dt-grid-2">
+    <article class="panel">
+      <div class="dt-card-head"><div><span class="dt-kicker">MACRO GLOBAL</span><h2>Drivers externos</h2></div></div>
+      <div id="externalMatrix" class="dt-external-matrix"></div>
+    </article>
+    <article class="panel">
+      <div class="dt-card-head"><div><span class="dt-kicker">PLANO</span><h2>Leitura para a operação</h2></div></div>
+      <div id="dtPlan" class="dt-plan"></div>
+      <div class="dt-method"><strong>Regra:</strong> evento 3★ iminente ou captura atrasada → AGUARDAR. Sem bloqueio, procure confluência de pelo menos três camadas antes do gatilho.</div>
+    </article>
+  </section>
+  <div id="dtMessage" class="message warning" hidden></div>
+</div>
+{% endblock %}

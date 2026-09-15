@@ -9,6 +9,7 @@ from .analytics import build_market_analysis
 from .parity import build_dollar_parity
 from .opening import build_opening_analysis
 from .macro_opening import build_macro_opening_analysis
+from .index_opening import build_index_opening_analysis
 from .sources import AwesomeApiSource, BancoCentralSource, InvestingSource
 from .types import Quote, SourceResult
 from .remote_market import fetch_remote_market_snapshot, remote_market_enabled
@@ -108,6 +109,7 @@ class MarketCollector:
         parity = build_dollar_parity(quotes, today=timezone.localdate())
         macro_opening = build_macro_opening_analysis(quotes)
         opening_analysis = build_opening_analysis(quotes, parity)
+        index_opening = build_index_opening_analysis(quotes)
 
         payload = {
             "schema_version": 5,
@@ -125,6 +127,7 @@ class MarketCollector:
             "dollar_parity": parity,
             "macro_opening": macro_opening,
             "opening_analysis": opening_analysis,
+            "index_opening": index_opening,
             "data_policy": (
                 "Valores ausentes permanecem nulos. Não existem preços de referência, séries aleatórias, "
                 "probabilidades artificiais ou substituições silenciosas. Percentuais do Investing são validados contra "

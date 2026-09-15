@@ -10,6 +10,10 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
+    "collect-daytrade-investing-calendar": {
+        "task": "dashboard.tasks.collect_investing_daytrade_calendar",
+        "schedule": 60.0,
+    },
     "collect-market-data": {
         "task": "dashboard.tasks.collect_market_snapshot",
         "schedule": float(settings.MARKET_REFRESH_SECONDS),
@@ -21,6 +25,10 @@ app.conf.beat_schedule = {
     "collect-economic-calendar": {
         "task": "dashboard.tasks.collect_economic_calendar",
         "schedule": float(settings.ECONOMIC_CALENDAR_REFRESH_SECONDS),
+    },
+    "sync-excel-captures": {
+        "task": "dashboard.tasks.sync_excel_captures",
+        "schedule": 60.0,
     },
     "cleanup-market-history": {
         "task": "dashboard.tasks.cleanup_market_history",

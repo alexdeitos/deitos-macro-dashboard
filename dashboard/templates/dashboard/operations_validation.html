@@ -1,0 +1,63 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Validação de Operações — Macro Dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'dashboard/css/operations_validation.css' %}">
+{% endblock %}
+{% block extra_js %}
+<script defer src="{% static 'dashboard/js/operations_validation.js' %}"></script>
+{% endblock %}
+{% block content %}
+<section class="panel validation-hero">
+  <div>
+    <span class="radar-eyebrow">PROFIT · PERFORMANCE</span>
+    <h1>Validação de Operações</h1>
+    <p class="muted">Importe o relatório do Profit, revise cada trade, registre a justificativa e mande somente as operações escolhidas para o Diário de Trade.</p>
+  </div>
+  <label class="upload-btn">Importar relatório Profit (.csv)
+    <input id="performanceFile" type="file" accept=".csv,.txt" hidden>
+  </label>
+</section>
+
+<section class="radar-kpis">
+  <article class="radar-kpi panel"><span>Trades</span><strong id="perfTrades">N/D</strong><small id="perfPeriod">—</small></article>
+  <article class="radar-kpi panel"><span>Resultado líquido reportado</span><strong id="perfNet">N/D</strong><small id="perfPF">PF: —</small></article>
+  <article class="radar-kpi panel"><span>Win rate</span><strong id="perfWinrate">N/D</strong><small id="perfWL">—</small></article>
+  <article class="radar-kpi panel"><span>Maior ganho / perda</span><strong id="perfExtremes">N/D</strong><small id="perfAccount">—</small></article>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><span class="radar-eyebrow">RESUMO</span><h2>Leitura da performance</h2></div></div>
+  <div id="instrumentSummary" class="instrument-summary"></div>
+  <div id="validationMessage" class="message warning" hidden></div>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><span class="radar-eyebrow">TRADE A TRADE</span><h2>Validar e registrar no diário</h2></div></div>
+  <div class="table-wrap">
+    <table class="perf-table">
+      <thead><tr><th>Data/Hora</th><th>Ativo</th><th>Lado</th><th>Qtd</th><th>Entrada</th><th>Saída</th><th>Resultado</th><th>Validação</th><th>Ações</th></tr></thead>
+      <tbody id="performanceRows"><tr><td colspan="9" class="muted">Importe um relatório do Profit.</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<dialog id="tradeDialog" class="trade-dialog">
+  <form method="dialog" id="tradeForm">
+    <div class="dialog-head"><h2 id="dialogTitle">Validar trade</h2><button value="cancel" class="icon-button" type="submit">×</button></div>
+    <div id="dialogMeta" class="dialog-meta"></div>
+    <label>Justificativa do trade
+      <textarea id="justification" rows="7" placeholder="Ex.: entrada após rompimento + reteste, alinhada ao contexto macro..."></textarea>
+    </label>
+    <div class="form-grid">
+      <label>Nota da execução (0–10)<input id="validationScore" type="number" min="0" max="10" step="1" value="0"></label>
+      <label>Setup / observação<input id="setupNote" type="text" placeholder="Ex.: ICT, SMC, abertura, VWAP..."></label>
+    </div>
+    <div class="dialog-actions">
+      <button value="cancel" class="secondary-button">Cancelar</button>
+      <button id="saveValidation" type="button" class="primary-button">Salvar validação</button>
+      <button id="saveDiary" type="button" class="primary-button diary-button">Salvar no Diário</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

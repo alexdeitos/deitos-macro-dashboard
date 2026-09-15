@@ -330,7 +330,7 @@
     function plot(id, traces, layout = {}) {
         const node = $(id); if (!node) return;
         if (!window.Plotly) { node.textContent = "Plotly ainda não foi carregado."; return; }
-        window.Plotly.react(node, traces, {paper_bgcolor:"transparent",plot_bgcolor:"transparent",font:{color:"#aeb7ba"},margin:{l:55,r:25,t:20,b:50},xaxis:{gridcolor:"rgba(139,162,179,.1)"},yaxis:{gridcolor:"rgba(139,162,179,.1)"},legend:{orientation:"h"},...layout}, {displayModeBar:false,responsive:true});
+        window.Plotly.react(node, traces, {paper_bgcolor:"transparent",plot_bgcolor:"transparent",font:{color:"#aeb7ba"},hoverlabel:{bgcolor:"#ffffff",bordercolor:"#d1d5db",font:{color:"#111827"}},margin:{l:55,r:25,t:20,b:50},xaxis:{gridcolor:"rgba(139,162,179,.1)"},yaxis:{gridcolor:"rgba(139,162,179,.1)"},legend:{orientation:"h"},...layout}, {displayModeBar:false,responsive:true});
     }
     function renderCharts(data) {
         const curve = data.curve || [];

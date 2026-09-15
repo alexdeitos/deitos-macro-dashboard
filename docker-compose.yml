@@ -47,6 +47,7 @@ services:
       - "8000:8000"
     volumes:
       - media_data:/app/media
+      - ./data:/app/data:ro
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +65,8 @@ services:
     restart: unless-stopped
     env_file: [.env]
     command: celery -A macro_dashboard worker --loglevel=INFO --concurrency=2
+    volumes:
+      - ./data:/app/data:ro
     depends_on:
       db:
         condition: service_healthy
@@ -75,6 +78,8 @@ services:
     restart: unless-stopped
     env_file: [.env]
     command: celery -A macro_dashboard beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
+    volumes:
+      - ./data:/app/data:ro
     depends_on:
       db:
         condition: service_healthy

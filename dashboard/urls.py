@@ -1,17 +1,22 @@
 from django.urls import path
 
-from . import diary_views, dollar_views, fed_views, views
+from . import capture_views, diary_views, dollar_views, fed_views, views
 
 app_name = "dashboard"
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("", views.daytrade, name="daytrade"),
+    path("dashboard/", views.index, name="index"),
     path("validacao/", views.validation, name="validation"),
     path("diario/", diary_views.trade_diary, name="trade_diary"),
     path("dolar/", dollar_views.dollar_analysis, name="dollar_analysis"),
     path("eua/", fed_views.fed_analysis, name="fed_analysis"),
+    path("radar-indice/", capture_views.index_radar, name="index_radar"),
+    path("validacao-operacoes/", capture_views.operations_validation, name="operations_validation"),
     path("diario/prints/<int:trade_id>/", diary_views.trade_screenshot, name="trade_screenshot"),
     path("api/dashboard/", views.api_dashboard, name="api_dashboard"),
+    path("api/daytrade/", views.api_daytrade, name="api_daytrade"),
+    path("api/daytrade/refresh/", views.api_daytrade_refresh, name="api_daytrade_refresh"),
     path("api/refresh/", views.api_refresh, name="api_refresh"),
     path("api/news/", views.api_news, name="api_news"),
     path("api/news/refresh/", views.api_refresh_news, name="api_refresh_news"),
@@ -22,6 +27,15 @@ urlpatterns = [
     path("api/dollar-analysis/", dollar_views.api_dollar_analysis, name="api_dollar_analysis"),
     path("api/fed-analysis/", fed_views.api_fed_analysis, name="api_fed_analysis"),
     path("api/fed-analysis/refresh/", fed_views.api_fed_refresh, name="api_fed_refresh"),
+    path("api/radar-indice/", capture_views.api_index_radar, name="api_index_radar"),
+    path("api/radar-indice/refresh/", capture_views.api_index_radar_refresh, name="api_index_radar_refresh"),
+    path("api/capturas/import/", capture_views.api_import_captures, name="api_import_captures"),
+    path("api/capturas/ingest/", capture_views.api_ingest_captures, name="api_ingest_captures"),
+    path("api/capturas/status/", capture_views.api_capture_status, name="api_capture_status"),
+    path("api/performance/latest/", capture_views.api_performance_latest, name="api_performance_latest"),
+    path("api/performance/import/", capture_views.api_performance_import, name="api_performance_import"),
+    path("api/performance/trades/<int:trade_id>/validate/", capture_views.api_performance_validate, name="api_performance_validate"),
+    path("api/performance/trades/<int:trade_id>/diary/", capture_views.api_performance_save_diary, name="api_performance_save_diary"),
     path("api/trade/accounts/", diary_views.api_trade_accounts, name="api_trade_accounts"),
     path("api/trade/accounts/<int:account_id>/", diary_views.api_trade_account_detail, name="api_trade_account_detail"),
     path("api/trade/setups/", diary_views.api_trade_setups, name="api_trade_setups"),
