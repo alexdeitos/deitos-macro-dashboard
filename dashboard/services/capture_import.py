@@ -33,7 +33,7 @@ def configured_live_workbook_path() -> Path:
     if candidates:
         return max(candidates, key=lambda item: item.stat().st_mtime)
 
-    return data_dir / "COTACOES(1).xlsm"
+    return data_dir / "COTACOES.xlsm"
 
 
 def _read_live_config_rows(path: Path):

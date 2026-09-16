@@ -44,8 +44,8 @@ O score é **viés**, não probabilidade e não ordem automática. A direção f
 
 ## Sincronização automática do Excel
 
-O Radar Índice lê automaticamente a aba `CONFIG_CAPTURA` do `COTACOES(1).xlsm` a cada 60 segundos por uma tarefa Celery Beat. O diretório `./data` do projeto é montado como `/app/data` nos containers web, worker e beat.
+O Radar Índice lê automaticamente a aba `CONFIG_CAPTURA` do `COTACOES.xlsm` a cada 60 segundos por uma tarefa Celery Beat. O diretório `./data` do projeto é montado como `/app/data` nos containers web, worker e beat.
 
-O caminho padrão é `/app/data/COTACOES(1).xlsm`. Não é necessário alterar o `.env`; para usar outro arquivo, a variável `CAPTURE_XLSM_PATH` pode ser definida no ambiente antes de subir o Compose.
+O caminho padrão é `/app/data/COTACOES.xlsm`. Não é necessário alterar o `.env`; para usar outro arquivo, a variável `CAPTURE_XLSM_PATH` pode ser definida no ambiente antes de subir o Compose.
 
 A captura automática grava uma fotografia por minuto e calcula a variação percentual de cada ação comparando o preço atual com a última captura. A opção manual `Importar COTACOES.xlsm` continua disponível.

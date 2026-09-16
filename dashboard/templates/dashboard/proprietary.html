@@ -1,0 +1,81 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Mesa Proprietária — Macro Dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/proprietary.css' %}">{% endblock %}
+{% block extra_js %}<script defer src="{% static 'dashboard/js/proprietary.js' %}"></script>{% endblock %}
+{% block content %}
+<div class="prop-shell">
+  <section class="prop-hero panel">
+    <div>
+      <span class="prop-kicker">MESA PROPRIETÁRIA · MIDE</span>
+      <h1>Análise da Conta</h1>
+      <p class="muted">Configure os limites do plano e valide o relatório de performance do Profit sem perder o histórico das avaliações.</p>
+    </div>
+    <div class="prop-actions"><button id="newAccount" class="secondary-button">+ Nova conta</button><label class="upload-btn">Importar relatório Profit<input id="propFile" type="file" accept=".csv,.txt" hidden></label></div>
+  </section>
+
+  <section class="prop-config panel">
+    <div class="prop-section-head"><div><span class="prop-kicker">CONTA / PLANO</span><h2>Parâmetros da avaliação</h2></div><span id="configStatus" class="pill partial">Selecione uma conta</span></div>
+    <div class="prop-form-grid">
+      <label>Conta<select id="accountSelect"><option value="">Selecione...</option></select></label>
+      <label>Nome da conta<input id="accountName" placeholder="Ex.: MIDE Arrojado 2.0 #09"></label>
+      <label>Plano<input id="planName" placeholder="Ex.: Start / Exame Arrojado"></label>
+      <label>Valor do plano (R$)<input id="planValue" inputmode="decimal" placeholder="0,00"></label>
+      <label>Tamanho / saldo inicial (R$)<input id="startingBalance" inputmode="decimal" placeholder="0,00"></label>
+      <label>Perda máxima (R$)<input id="maxLoss" inputmode="decimal" placeholder="3.300,00"></label>
+      <label>Take/meta para aprovação (R$)<input id="approvalTarget" inputmode="decimal" placeholder="5.000,00"></label>
+      <label>Máx. contratos/dia<input id="maxContracts" type="number" min="0" step="1" placeholder="0 = não limitar"></label>
+      <label>Taxa Mini-Índice (R$/contrato)<input id="miniIndexFee" inputmode="decimal" value="0,35" placeholder="0,35"></label>
+      <label>Taxa Mini-Dólar (R$/contrato)<input id="miniDollarFee" inputmode="decimal" value="1,35" placeholder="1,35"></label>
+      <label class="wide">Observações<textarea id="accountNotes" rows="2" placeholder="Regras adicionais do plano, observações pessoais..." ></textarea></label>
+    </div>
+    <div class="prop-form-actions"><button id="saveAccount" class="primary-button">Salvar configuração da conta</button><span class="muted">Os parâmetros são salvos no banco e reutilizados nas próximas avaliações.</span></div>
+  </section>
+
+  <section class="prop-status-grid">
+    <article class="prop-status-card panel" id="statusCard"><span class="prop-kicker">STATUS DA CONTA</span><strong id="propStatus">AGUARDANDO</strong><small id="propStatusDetail">Importe um relatório para avaliar.</small></article>
+    <article class="prop-kpi panel"><span>Resultado líquido</span><strong id="propResult">R$ 0,00</strong><small>Após custos operacionais</small></article>
+    <article class="prop-kpi panel"><span>Falta para aprovação</span><strong id="propRemaining">R$ 0,00</strong><small>Meta configurada</small></article>
+    <article class="prop-kpi panel"><span>Margem até perda máxima</span><strong id="propBuffer">R$ 0,00</strong><small>Quanto ainda pode perder</small></article>
+  </section>
+
+  <section class="prop-grid-3">
+    <article class="panel"><span class="prop-kicker">RISCO</span><h2>Limites observados</h2><div id="riskMetrics" class="metric-list"></div></article>
+    <article class="panel"><span class="prop-kicker">EXECUÇÃO</span><h2>Compatibilidade com o plano</h2><div id="planChecks" class="check-list"></div></article>
+    <article class="panel"><span class="prop-kicker">PERFORMANCE</span><h2>Qualidade do relatório</h2><div id="perfMetrics" class="metric-list"></div></article>
+  </section>
+
+  <section class="panel">
+    <div class="prop-section-head"><div><span class="prop-kicker">ORIENTAÇÃO</span><h2>Como melhorar a performance</h2></div><span id="evaluationTime" class="muted">—</span></div>
+    <div id="guidance" class="guidance-list"><div class="empty-state">Ainda não há uma avaliação para esta conta.</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="prop-section-head"><div><span class="prop-kicker">HISTÓRICO</span><h2>Avaliações salvas</h2></div></div>
+    <div class="table-wrap"><table class="prop-table"><thead><tr><th>Data</th><th>Relatório</th><th>Resultado</th><th>Status</th><th>Contratos</th><th>Maior perda</th></tr></thead><tbody id="historyRows"><tr><td colspan="6" class="muted">Selecione uma conta.</td></tr></tbody></table></div>
+  </section>
+
+  <section class="panel prop-disclaimer"><strong>Como interpretar:</strong> o sistema aplica exatamente os limites que você configurar. “Meta atingida” significa que o resultado líquido, já descontadas as taxas operacionais, alcançou o take informado; “Eliminada” significa que o resultado líquido atingiu/ultrapassou a perda máxima informada. As taxas padrão são R$ 0,35 por contrato de Mini-Índice e R$ 1,35 por contrato de Mini-Dólar e podem ser ajustadas por conta. Os alertas de risco de 10% por trade e 25% por pior dia são controles internos de prudência, não regras oficiais da MIDE.</section>
+  <div id="propMessage" class="message warning" hidden></div>
+</div>
+
+<dialog id="accountDialog" class="account-dialog">
+  <form method="dialog" id="newAccountForm">
+    <div class="dialog-head"><div><span class="prop-kicker">MESA PROPRIETÁRIA · MIDE</span><h2>Nova conta / plano</h2></div><button type="button" id="closeAccountDialog" class="icon-button" aria-label="Fechar">×</button></div>
+    <p class="muted">Cadastre os parâmetros que serão usados nas validações do relatório do Profit. Depois de criada, a conta ficará salva no banco para novas avaliações.</p>
+    <div class="dialog-form-grid">
+      <label>Nome da conta<input id="newAccountName" required placeholder="Ex.: MIDE Arrojado 2.0 #09"></label>
+      <label>Plano<input id="newPlanName" placeholder="Ex.: Start / Exame Arrojado"></label>
+      <label>Valor do plano (R$)<input id="newPlanValue" inputmode="decimal" placeholder="0,00"></label>
+      <label>Tamanho / saldo inicial (R$)<input id="newStartingBalance" inputmode="decimal" placeholder="0,00"></label>
+      <label>Perda máxima (R$)<input id="newMaxLoss" inputmode="decimal" placeholder="3.300,00"></label>
+      <label>Take/meta para aprovação (R$)<input id="newApprovalTarget" inputmode="decimal" placeholder="5.000,00"></label>
+      <label>Máx. contratos/dia<input id="newMaxContracts" type="number" min="0" step="1" placeholder="0 = não limitar"></label>
+      <label>Taxa Mini-Índice (R$/contrato)<input id="newMiniIndexFee" inputmode="decimal" value="0,35" placeholder="0,35"></label>
+      <label>Taxa Mini-Dólar (R$/contrato)<input id="newMiniDollarFee" inputmode="decimal" value="1,35" placeholder="1,35"></label>
+      <label class="wide">Observações<textarea id="newAccountNotes" rows="3" placeholder="Regras adicionais do plano, observações pessoais..."></textarea></label>
+    </div>
+    <div class="dialog-actions"><button type="button" id="cancelAccountDialog" class="secondary-button">Cancelar</button><button id="createAccount" type="button" class="primary-button">Criar conta</button></div>
+  </form>
+</dialog>
+{% endblock %}

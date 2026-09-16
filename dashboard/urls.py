@@ -1,12 +1,13 @@
 from django.urls import path
 
-from . import capture_views, diary_views, dollar_views, fed_views, views
+from . import capture_views, diary_views, dollar_views, fed_views, prop_views, views
 
 app_name = "dashboard"
 
 urlpatterns = [
-    path("", views.daytrade, name="daytrade"),
-    path("dashboard/", views.index, name="index"),
+    path("", views.index, name="index"),
+    path("daytrade/", views.daytrade, name="daytrade"),
+    path("mesa-proprietaria/", prop_views.proprietary_dashboard, name="proprietary_dashboard"),
     path("validacao/", views.validation, name="validation"),
     path("diario/", diary_views.trade_diary, name="trade_diary"),
     path("dolar/", dollar_views.dollar_analysis, name="dollar_analysis"),
@@ -36,6 +37,12 @@ urlpatterns = [
     path("api/performance/import/", capture_views.api_performance_import, name="api_performance_import"),
     path("api/performance/trades/<int:trade_id>/validate/", capture_views.api_performance_validate, name="api_performance_validate"),
     path("api/performance/trades/<int:trade_id>/diary/", capture_views.api_performance_save_diary, name="api_performance_save_diary"),
+    path("api/proprietaria/accounts/", prop_views.api_proprietary_accounts, name="api_proprietary_accounts"),
+    path("api/proprietaria/accounts/create/", prop_views.api_proprietary_account_create, name="api_proprietary_account_create"),
+    path("api/proprietaria/accounts/<int:account_id>/update/", prop_views.api_proprietary_account_update, name="api_proprietary_account_update"),
+    path("api/proprietaria/evaluate/", prop_views.api_proprietary_evaluate, name="api_proprietary_evaluate"),
+    path("api/proprietaria/accounts/<int:account_id>/latest/", prop_views.api_proprietary_latest, name="api_proprietary_latest"),
+    path("api/proprietaria/accounts/<int:account_id>/history/", prop_views.api_proprietary_history, name="api_proprietary_history"),
     path("api/trade/accounts/", diary_views.api_trade_accounts, name="api_trade_accounts"),
     path("api/trade/accounts/<int:account_id>/", diary_views.api_trade_account_detail, name="api_trade_account_detail"),
     path("api/trade/setups/", diary_views.api_trade_setups, name="api_trade_setups"),

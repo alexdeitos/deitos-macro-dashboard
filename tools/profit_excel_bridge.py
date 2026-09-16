@@ -5,7 +5,7 @@ This bridge reads the live in-memory Excel workbook through COM. It does NOT
 read the .xlsm file from disk, so RTD values do not need to be saved first.
 
 Run on the same Windows machine where Profit and Excel are running.
-Default workbook: COTACOES(2).xlsm next to this script.
+Default workbook: COTACOES.xlsm next to this script.
 """
 
 from __future__ import annotations
@@ -161,7 +161,7 @@ def main() -> int:
     )
     interval = int(os.getenv("BRIDGE_INTERVAL_SECONDS", "60"))
 
-    workbook_path = Path(workbook_arg) if workbook_arg else script_dir.parent / "COTACOES(2).xlsm"
+    workbook_path = Path(workbook_arg) if workbook_arg else script_dir.parent / "COTACOES.xlsm"
     workbook_path = workbook_path.expanduser()
 
     print("=== Profit Excel Live Bridge ===")

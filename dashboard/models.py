@@ -410,3 +410,64 @@ class PerformanceTrade(models.Model):
 
     def __str__(self):
         return f"{self.symbol} {self.opened_at:%d/%m/%Y %H:%M:%S} {self.result}"
+
+class ProprietaryAccount(models.Model):
+    """Configuração de uma conta/plano de mesa proprietária para validação."""
+    name = models.CharField(max_length=120, unique=True)
+    firm = models.CharField(max_length=120, default="MIDE")
+    plan_name = models.CharField(max_length=120, blank=True)
+    plan_value = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    starting_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    max_loss = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    approval_target = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    max_contracts_day = models.PositiveIntegerField(default=0)
+    mini_index_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.35, verbose_name="Taxa Mini-Índice por contrato")
+    mini_dollar_fee = models.DecimalField(max_digits=10, decimal_places=2, default=1.35, verbose_name="Taxa Mini-Dólar por contrato")
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-is_active", "name"]
+
+    def __str__(self):
+        return f"{self.name} — {self.firm}"
+
+
+class ProprietaryEvaluation(models.Model):
+    class Status(models.TextChoices):
+        IN_PROGRESS = "in_progress", "Em avaliação"
+        APPROVED = "approved", "Meta atingida"
+        ELIMINATED = "eliminated", "Eliminada"
+        INVALID = "invalid", "Dados insuficientes"
+
+    account = models.ForeignKey(ProprietaryAccount, on_delete=models.CASCADE, related_name="evaluations")
+    report = models.ForeignKey(PerformanceReport, on_delete=models.CASCADE, related_name="proprietary_evaluations")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.INVALID, db_index=True)
+    current_result = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    gross_result = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    operational_costs = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    remaining_to_target = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    remaining_loss_buffer = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    max_daily_loss = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    max_trade_loss = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    max_contracts_observed = models.PositiveIntegerField(default=0)
+    trade_count = models.PositiveIntegerField(default=0)
+    performance_ok = models.BooleanField(default=False)
+    contract_limit_ok = models.BooleanField(default=False)
+    risk_ok = models.BooleanField(default=False)
+    risk_ratio_percent = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    guidance = models.JSONField(default=list, blank=True)
+    metrics = models.JSONField(default=dict, blank=True)
+    evaluated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-evaluated_at", "-id"]
+        indexes = [
+            models.Index(fields=["account", "-evaluated_at"], name="prop_eval_account_date_idx"),
+            models.Index(fields=["status", "-evaluated_at"], name="prop_eval_status_date_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.account} — {self.status} — {self.evaluated_at:%d/%m/%Y %H:%M}"

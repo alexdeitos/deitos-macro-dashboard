@@ -4,7 +4,7 @@
 
 O projeto anterior estava lendo o arquivo `.xlsm` com `openpyxl` dentro do Linux/Docker.
 Isso lê somente o **cache salvo no arquivo**, não o estado RTD que está na memória do Excel.
-Além disso, o arquivo `COTACOES(2).xlsm` enviado nesta conversa não apresentou conteúdo
+Além disso, o arquivo `COTACOES.xlsm` enviado nesta conversa não apresentou conteúdo
 legível pelo indexador; a validação binária mostrou que ele contém fórmulas RTD e que,
 nas células testadas, o valor cacheado estava como `#N/A`.
 
@@ -56,7 +56,7 @@ problema está no registro/instalação do componente Excel/Profit, não no Djan
 Deixe:
 - Profit aberto;
 - Excel aberto;
-- `COTACOES(2).xlsm` aberto;
+- `COTACOES.xlsm` aberto;
 - aba `CONFIG_CAPTURA` aberta ou no mesmo workbook.
 
 Depois execute:

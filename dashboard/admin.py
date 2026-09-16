@@ -93,3 +93,8 @@ try:
     admin.site.register(CapturePoint)
 except admin.sites.AlreadyRegistered:
     pass
+
+from .models import ProprietaryAccount, ProprietaryEvaluation
+
+admin.site.register(ProprietaryAccount)
+admin.site.register(ProprietaryEvaluation)

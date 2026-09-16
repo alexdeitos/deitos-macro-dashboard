@@ -18,8 +18,8 @@ ser a ponte Windows.
 1. Deixe Profit e Excel abertos.
 2. Abra `CONFIG_CAPTURA` no workbook.
 3. Confirme que os valores RTD aparecem nas colunas B:E.
-4. Coloque `COTACOES(2).xlsm` ao lado desta pasta `tools` ou informe o caminho:
-   `profit_excel_bridge.py "C:\caminho\COTACOES(2).xlsm"`
+4. Coloque `COTACOES.xlsm` ao lado desta pasta `tools` ou informe o caminho:
+   `profit_excel_bridge.py "C:\caminho\COTACOES.xlsm"`
 5. Execute `start_profit_bridge.bat`.
 
 A ponte envia 1 snapshot por minuto para:
