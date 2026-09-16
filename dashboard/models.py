@@ -424,6 +424,7 @@ class ProprietaryAccount(models.Model):
     mini_index_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.35, verbose_name="Taxa Mini-Índice por contrato")
     mini_dollar_fee = models.DecimalField(max_digits=10, decimal_places=2, default=1.35, verbose_name="Taxa Mini-Dólar por contrato")
     notes = models.TextField(blank=True)
+    start_date = models.DateField(null=True, blank=True, verbose_name="Data de início do plano")
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -461,12 +462,14 @@ class ProprietaryEvaluation(models.Model):
     guidance = models.JSONField(default=list, blank=True)
     metrics = models.JSONField(default=dict, blank=True)
     evaluated_at = models.DateTimeField(auto_now_add=True)
+    is_current = models.BooleanField(default=True, db_index=True)
 
     class Meta:
         ordering = ["-evaluated_at", "-id"]
         indexes = [
             models.Index(fields=["account", "-evaluated_at"], name="prop_eval_account_date_idx"),
             models.Index(fields=["status", "-evaluated_at"], name="prop_eval_status_date_idx"),
+            models.Index(fields=["account", "-is_current", "-evaluated_at"], name="prop_eval_current_idx"),
         ]
 
     def __str__(self):

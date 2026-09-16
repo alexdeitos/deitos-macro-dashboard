@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 from decimal import Decimal, InvalidOperation
+from datetime import date
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -54,6 +55,8 @@ def api_proprietary_account_update(request, account_id: int):
         account.max_loss = _decimal(data.get("max_loss"))
         account.approval_target = _decimal(data.get("approval_target"))
         account.max_contracts_day = int(data.get("max_contracts_day") or 0)
+        start_date = str(data.get("start_date") or "").strip()
+        account.start_date = date.fromisoformat(start_date) if start_date else None
         account.mini_index_fee = _decimal(data.get("mini_index_fee"))
         account.mini_dollar_fee = _decimal(data.get("mini_dollar_fee"))
         account.notes = str(data.get("notes") or "").strip()
@@ -84,7 +87,7 @@ def api_proprietary_evaluate(request):
 
 @require_GET
 def api_proprietary_latest(request, account_id: int):
-    evaluation=ProprietaryEvaluation.objects.filter(account_id=account_id).select_related("account","report").first()
+    evaluation=ProprietaryEvaluation.objects.filter(account_id=account_id, is_current=True).select_related("account","report").order_by("-evaluated_at","-id").first()
     if not evaluation:
         return JsonResponse({"available":False,"message":"Nenhuma avaliação foi salva para esta conta."}, status=404)
     return JsonResponse({"available":True,"evaluation":evaluation_payload(evaluation)}, json_dumps_params={"ensure_ascii":False})

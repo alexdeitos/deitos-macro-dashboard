@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from decimal import Decimal
+from datetime import date
 from typing import Any
 
 from django.db import transaction
@@ -10,6 +11,22 @@ from django.utils import timezone
 from dashboard.models import ProprietaryAccount, ProprietaryEvaluation, PerformanceReport
 
 D0 = Decimal("0")
+
+DEFAULT_WIN_FEE = Decimal("0.35")
+DEFAULT_WDO_FEE = Decimal("1.35")
+
+def _normalized_fee(value: Any, default: Decimal) -> Decimal:
+    """Normalize fee values while preserving legitimately entered amounts.
+
+    Legacy versions of the UI could turn 0.35 into 35 and 1.35 into 135
+    because the JavaScript decimal parser removed every dot. Values exactly
+    35/135 are therefore treated as the known legacy representation.
+    """
+    fee = _decimal(value)
+    if fee in (Decimal("35"), Decimal("135")):
+        return fee / Decimal("100")
+    return fee if fee >= D0 else default
+
 
 
 def _money(v: Decimal) -> float:
@@ -45,14 +62,23 @@ def _trade_cost(t: Any, account: ProprietaryAccount) -> Decimal:
     contracts = max(int(t.buy_qty or 0), 0) + max(int(t.sell_qty or 0), 0)
     instrument = _instrument(t)
     if instrument == "WIN":
-        return account.mini_index_fee * contracts
+        return _normalized_fee(account.mini_index_fee, DEFAULT_WIN_FEE) * contracts
     if instrument == "WDO":
-        return account.mini_dollar_fee * contracts
+        return _normalized_fee(account.mini_dollar_fee, DEFAULT_WDO_FEE) * contracts
     return D0
 
 
 def _evaluate_metrics(report: PerformanceReport, account: ProprietaryAccount) -> dict[str, Any]:
-    trades = list(report.trades.all().order_by("opened_at", "id"))
+    all_trades = list(report.trades.all().order_by("opened_at", "id"))
+    # O relatório do Profit pode conter operações anteriores ao início da conta.
+    # A avaliação da mesa deve considerar somente o período do plano cadastrado.
+    if account.start_date:
+        trades = [
+            t for t in all_trades
+            if timezone.localtime(t.opened_at).date() >= account.start_date
+        ]
+    else:
+        trades = all_trades
     gross_total = sum((t.result for t in trades), D0)
     operational_costs = sum((_trade_cost(t, account) for t in trades), D0)
     total = gross_total - operational_costs
@@ -124,6 +150,9 @@ def _evaluate_metrics(report: PerformanceReport, account: ProprietaryAccount) ->
         "risk_ratio_percent": trade_ratio,
         "guidance": guidance,
         "metrics": {
+            "period_start": account.start_date.isoformat() if account.start_date else None,
+            "period_trade_count": len(trades),
+            "excluded_before_start": max(len(all_trades) - len(trades), 0),
             "winning_trades": sum(1 for t in trades if net_results[t.id] > D0),
             "losing_trades": sum(1 for t in trades if net_results[t.id] < D0),
             "win_rate": round(sum(1 for t in trades if net_results[t.id] > D0) / len(trades) * 100, 1) if trades else 0,
@@ -134,13 +163,13 @@ def _evaluate_metrics(report: PerformanceReport, account: ProprietaryAccount) ->
             "profit_factor": round(float(sum((net_results[t.id] for t in trades if net_results[t.id] > D0), D0) / abs(sum((net_results[t.id] for t in trades if net_results[t.id] < D0), D0))), 2) if sum((net_results[t.id] for t in trades if net_results[t.id] < D0), D0) < D0 else None,
             "gross_result": _money(gross_total),
             "operational_costs": _money(operational_costs),
-            "fee_config": {"WIN": _money(account.mini_index_fee), "WDO": _money(account.mini_dollar_fee)},
+            "fee_config": {"WIN": _money(_normalized_fee(account.mini_index_fee, DEFAULT_WIN_FEE)), "WDO": _money(_normalized_fee(account.mini_dollar_fee, DEFAULT_WDO_FEE))},
         },
     }
 
 
 def account_payload(account: ProprietaryAccount) -> dict[str, Any]:
-    latest = account.evaluations.first()
+    latest = account.evaluations.filter(is_current=True).order_by("-evaluated_at", "-id").first()
     return {
         "id": account.id,
         "name": account.name,
@@ -151,6 +180,7 @@ def account_payload(account: ProprietaryAccount) -> dict[str, Any]:
         "max_loss": _money(account.max_loss),
         "approval_target": _money(account.approval_target),
         "max_contracts_day": account.max_contracts_day,
+        "start_date": account.start_date.isoformat() if account.start_date else "",
         "mini_index_fee": _money(account.mini_index_fee),
         "mini_dollar_fee": _money(account.mini_dollar_fee),
         "notes": account.notes,
@@ -199,31 +229,32 @@ def create_account(data: dict[str, Any]) -> ProprietaryAccount:
         max_loss=_decimal(data.get("max_loss")),
         approval_target=_decimal(data.get("approval_target")),
         max_contracts_day=int(data.get("max_contracts_day") or 0),
+        start_date=(date.fromisoformat(str(data.get("start_date")).strip()) if str(data.get("start_date") or "").strip() else None),
         mini_index_fee=_decimal(data.get("mini_index_fee")) if data.get("mini_index_fee") not in (None, "") else Decimal("0.35"),
         mini_dollar_fee=_decimal(data.get("mini_dollar_fee")) if data.get("mini_dollar_fee") not in (None, "") else Decimal("1.35"),
         notes=str(data.get("notes") or "").strip(),
     )
 
 
+@transaction.atomic
 def evaluate_report(account: ProprietaryAccount, report: PerformanceReport) -> ProprietaryEvaluation:
+    """Evaluate only the freshly imported report as an isolated snapshot.
+
+    Older evaluations remain in history but are never aggregated into the
+    current result. The new evaluation becomes the single current snapshot.
+    """
+    ProprietaryEvaluation.objects.filter(account=account, is_current=True).update(is_current=False)
     m = _evaluate_metrics(report, account)
+    metrics = dict(m["metrics"])
+    metrics.update({"source_report_id": report.id, "source_report_filename": report.filename, "snapshot_only": True})
     return ProprietaryEvaluation.objects.create(
-        account=account,
-        report=report,
-        status=m["status"],
-        current_result=m["current_result"],
-        gross_result=m["gross_result"],
-        operational_costs=m["operational_costs"],
-        remaining_to_target=m["remaining_to_target"],
-        remaining_loss_buffer=m["remaining_loss_buffer"],
-        max_daily_loss=m["max_daily_loss"],
-        max_trade_loss=m["max_trade_loss"],
-        max_contracts_observed=m["max_contracts_observed"],
-        trade_count=m["trade_count"],
-        performance_ok=m["performance_ok"],
-        contract_limit_ok=m["contract_limit_ok"],
-        risk_ok=m["risk_ok"],
-        risk_ratio_percent=m["risk_ratio_percent"],
-        guidance=m["guidance"],
-        metrics=m["metrics"],
+        account=account, report=report, status=m["status"],
+        current_result=m["current_result"], gross_result=m["gross_result"],
+        operational_costs=m["operational_costs"], remaining_to_target=m["remaining_to_target"],
+        remaining_loss_buffer=m["remaining_loss_buffer"], max_daily_loss=m["max_daily_loss"],
+        max_trade_loss=m["max_trade_loss"], max_contracts_observed=m["max_contracts_observed"],
+        trade_count=m["trade_count"], performance_ok=m["performance_ok"],
+        contract_limit_ok=m["contract_limit_ok"], risk_ok=m["risk_ok"],
+        risk_ratio_percent=m["risk_ratio_percent"], guidance=m["guidance"],
+        metrics=metrics, is_current=True,
     )
