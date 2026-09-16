@@ -55,6 +55,11 @@ def api_public_market_snapshot(request):
 def daytrade(request):
     return render(request, "dashboard/daytrade.html")
 
+@ensure_csrf_cookie
+@require_GET
+def clean_panel(request):
+    return render(request, "dashboard/clean_panel.html")
+
 
 @require_GET
 def api_daytrade(request):

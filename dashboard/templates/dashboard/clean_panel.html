@@ -1,0 +1,103 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block title %}Painel Direcional — Macro Dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/clean_panel.css' %}">{% endblock %}
+{% block extra_js %}<script defer src="{% static 'dashboard/js/clean_panel.js' %}"></script>{% endblock %}
+{% block content %}
+<div class="cp-shell">
+  <section class="cp-header panel">
+    <div>
+      <span class="cp-kicker">PAINEL OPERACIONAL · WIN / WDO</span>
+      <h1>Painel Direcional</h1>
+      <p class="muted">Leitura compacta do sentimento interno e externo, juros e commodities. O painel usa os dados já coletados pelo projeto.</p>
+    </div>
+    <div class="cp-header-actions">
+      <span id="cpUpdated" class="cp-updated">Aguardando dados…</span>
+      <button id="cpRefresh" class="primary-button" type="button">Atualizar</button>
+    </div>
+  </section>
+
+  <section class="cp-top-grid">
+    <article class="panel cp-decision">
+      <span class="cp-kicker">DIREÇÃO CONTEXTUAL</span>
+      <div id="cpDirection" class="cp-direction neutral">AGUARDAR</div>
+      <div id="cpAction" class="cp-action">Aguardando análise.</div>
+      <div class="cp-meta-row">
+        <div><span>Score</span><strong id="cpScore">N/D</strong></div>
+        <div><span>Confluência</span><strong id="cpConfidence">N/D</strong></div>
+        <div><span>Estado</span><strong id="cpState">N/D</strong></div>
+      </div>
+    </article>
+    <article class="panel cp-market-card">
+      <span class="cp-kicker">MERCADO</span>
+      <div class="cp-market-row"><span>WIN</span><strong id="cpWin">N/D</strong></div>
+      <div class="cp-market-row"><span>WDO</span><strong id="cpWdo">N/D</strong></div>
+      <div class="cp-market-row"><span>IBOV</span><strong id="cpIbov">N/D</strong></div>
+      <div class="cp-market-row"><span>Captura Profit</span><strong id="cpCapture">N/D</strong></div>
+    </article>
+  </section>
+
+  <section class="cp-price-panel">
+    <article class="panel cp-price-card">
+      <div class="cp-card-head"><div><span class="cp-kicker">WDO · PREÇO</span><h2>Dólar futuro</h2></div><span class="pill" id="cpDollarSnapshot">N/D</span></div>
+      <div class="cp-price-grid">
+        <div><span>Preço atual</span><strong id="cpDollarCurrent">N/D</strong></div>
+        <div><span>Preço justo</span><strong id="cpDollarFair">N/D</strong></div>
+        <div><span>Abertura provável</span><strong id="cpDollarOpen">N/D</strong></div>
+        <div><span>Desvio do justo</span><strong id="cpDollarDeviation">N/D</strong></div>
+      </div>
+      <div id="cpDollarRead" class="cp-price-note">Aguardando cálculo automático do dólar.</div>
+    </article>
+    <article class="panel cp-price-card">
+      <div class="cp-card-head"><div><span class="cp-kicker">WIN · MODELO DO DASHBOARD</span><h2>Índice / abertura WIN</h2></div><span class="pill" id="cpIndexSnapshot">N/D</span></div>
+      <div class="cp-price-grid">
+        <div><span>IBOV observado / base do WIN</span><strong id="cpIndexCurrent">N/D</strong></div>
+        <div><span>Preço justo</span><strong id="cpIndexFair">N/D</strong></div>
+        <div><span>Abertura provável</span><strong id="cpIndexOpen">N/D</strong></div>
+        <div><span>Desvio do justo</span><strong id="cpIndexDeviation">N/D</strong></div>
+      </div>
+      <div id="cpIndexRead" class="cp-price-note">Aguardando cálculo da abertura do índice.</div>
+    </article>
+  </section>
+
+  <section class="cp-columns">
+    <article class="panel">
+      <div class="cp-card-head"><div><span class="cp-kicker">INTERNO</span><h2>Pressão das ações</h2></div><span id="cpCoverage" class="pill">Cobertura —</span></div>
+      <div class="cp-kpi-grid">
+        <div><span>Média ponderada coberta</span><strong id="cpWeighted">N/D</strong></div>
+        <div><span>Contribuição ao IBOV</span><strong id="cpContribution">N/D</strong></div>
+        <div><span>Peso positivo</span><strong id="cpPositive">N/D</strong></div>
+        <div><span>Peso negativo</span><strong id="cpNegative">N/D</strong></div>
+      </div>
+      <div id="cpStocks" class="cp-list"></div>
+    </article>
+
+    <article class="panel">
+      <div class="cp-card-head"><div><span class="cp-kicker">EXTERNO</span><h2>Sentimento global</h2></div></div>
+      <div id="cpExternal" class="cp-list"></div>
+    </article>
+  </section>
+
+  <section class="cp-columns three">
+    <article class="panel">
+      <div class="cp-card-head"><span class="cp-kicker">JUROS</span><h2>Curva curta</h2></div>
+      <div id="cpRates" class="cp-list compact"></div>
+    </article>
+    <article class="panel">
+      <div class="cp-card-head"><span class="cp-kicker">RISCO</span><h2>VIX · DXY</h2></div>
+      <div id="cpRisk" class="cp-list compact"></div>
+    </article>
+    <article class="panel">
+      <div class="cp-card-head"><span class="cp-kicker">COMMODITIES</span><h2>Energia · Minério</h2></div>
+      <div id="cpCommodities" class="cp-list compact"></div>
+    </article>
+  </section>
+
+  <section class="panel cp-bottom">
+    <div class="cp-card-head"><div><span class="cp-kicker">AGENDA</span><h2>Próximos eventos relevantes</h2></div><span class="pill">3★ · BR / EUA / China</span></div>
+    <div id="cpEvents" class="cp-events"></div>
+  </section>
+
+  <div id="cpMessage" class="message warning" hidden></div>
+</div>
+{% endblock %}

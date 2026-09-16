@@ -81,9 +81,19 @@ def _pearson(xs: list[float], ys: list[float]) -> float | None:
 
 
 def _latest_capture_map(window_minutes: int = ANALYSIS_WINDOW_MINUTES) -> dict[str, CapturePoint]:
+    """Return the latest Profit/Excel capture per symbol.
+
+    CONFIG_CAPTURA is the authoritative source for the stock/curve radar when
+    the user is feeding the workbook through RTD/COM. Restricting this map to
+    that sheet prevents a duplicated symbol from another sheet/source from
+    silently replacing the value used in the weighted IBOV calculation.
+    """
     start = timezone.now() - timedelta(minutes=window_minutes)
     rows = (
-        CapturePoint.objects.filter(observed_at__gte=start)
+        CapturePoint.objects.filter(
+            observed_at__gte=start,
+            sheet_name="CONFIG_CAPTURA",
+        )
         .order_by("observed_at", "id")
         .only("observed_at", "symbol", "value", "change_percent", "sheet_name")
     )
@@ -108,6 +118,15 @@ def _find_target(latest: dict[str, CapturePoint]) -> CapturePoint | None:
 
 
 def _weighted_stocks(latest: dict[str, CapturePoint], weights: dict[str, float]) -> dict[str, Any]:
+    """Calculate raw variation, official weight and index contribution separately.
+
+    * change_percent: the exact VAR (%) coming from Profit/RTD.
+    * weight_percent: the theoretical Ibovespa weight.
+    * contribution_percent: change × weight, expressed in percentage points
+      of the index. This is intentionally *not* renormalized.
+    * weighted_change_percent: weighted average of only the covered names,
+      useful as a descriptive breadth metric when coverage is partial.
+    """
     rows = []
     weighted_change = 0.0
     available_weight = 0.0
@@ -142,10 +161,18 @@ def _weighted_stocks(latest: dict[str, CapturePoint], weights: dict[str, float])
             {
                 "symbol": symbol,
                 "sheet": point.sheet_name if point else "",
+                "price": round(_num(point.value) or 0.0, 6),
                 "change_percent": round(change, 5),
+                "weight": round(weight, 8),
                 "weight_percent": round(weight * 100, 4),
                 "contribution_percent": round(contribution, 6),
+                "contribution_label": "p.p. IBOV",
                 "observed_at": point.observed_at.isoformat(),
+                "source": (
+                    "Excel/Profit"
+                    if isinstance(point.metadata, dict) and point.metadata.get("source") == "profit_excel_com"
+                    else "CONFIG_CAPTURA"
+                ),
             }
         )
 
@@ -155,6 +182,7 @@ def _weighted_stocks(latest: dict[str, CapturePoint], weights: dict[str, float])
 
     return {
         "weighted_change_percent": round(normalized_change, 5) if normalized_change is not None else None,
+        "index_contribution_percent": round(weighted_change, 5),
         "raw_contribution_percent": round(weighted_change, 5),
         "coverage_percent": round(coverage * 100, 1),
         "positive_weight_percent": round(positive_weight * 100, 2),
@@ -415,7 +443,7 @@ def build_index_radar(*, force: bool = False) -> dict[str, Any]:
     context_lines = []
     if stock_signal is not None:
         context_lines.append(
-            f"Ações ponderadas: {stocks['weighted_change_percent']:+.3f}% com {stock_coverage:.1f}% do peso do índice coberto."
+            f"Ações ponderadas: média ponderada das variações cobertas {stocks['weighted_change_percent']:+.3f}%; contribuição estimada para o IBOV {stocks['index_contribution_percent']:+.3f} p.p.; cobertura {stock_coverage:.1f}%."
         )
     if factors:
         top = factors[:3]

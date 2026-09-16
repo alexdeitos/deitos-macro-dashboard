@@ -6,10 +6,15 @@
   const csrf = () => document.cookie.split(';').map(x=>x.trim()).find(x=>x.startsWith('csrftoken='))?.split('=').slice(1).join('=') || '';
 
   function row(item, isContribution=false) {
-    const value = isContribution ? item.contribution_percent : (item.adjusted_change_percent ?? item.change_percent);
+    const raw = Number.isFinite(Number(item.change_percent)) ? Number(item.change_percent) : null;
+    const contribution = Number.isFinite(Number(item.contribution_percent)) ? Number(item.contribution_percent) : null;
+    const value = isContribution ? contribution : (item.adjusted_change_percent ?? raw);
     const cls = tone(value);
     const width = Math.min(100, Math.abs(Number(value || 0)) * (isContribution ? 30 : 35));
-    return `<div class="driver-row ${cls}"><span class="symbol">${item.symbol || ''}</span><div class="bar-shell"><div class="bar" style="width:${width}%"></div></div><span class="value">${pct(value,isContribution?3:2)}${item.weight_percent ? ` · ${num(item.weight_percent,2)}%` : ''}</span></div>`;
+    if (isContribution && raw !== null && contribution !== null && item.weight_percent != null) {
+      return `<div class="driver-row ${cls}"><div class="symbol-block"><span class="symbol">${item.symbol || ''}</span><small>Variação ${pct(raw,2)} · Peso ${num(item.weight_percent,2)}%</small></div><div class="bar-shell"><div class="bar" style="width:${width}%"></div></div><span class="value">${pct(contribution,3)} <small>p.p. IBOV</small></span></div>`;
+    }
+    return `<div class="driver-row ${cls}"><span class="symbol">${item.symbol || ''}</span><div class="bar-shell"><div class="bar" style="width:${width}%"></div></div><span class="value">${pct(value,isContribution?3:2)}${item.weight_percent != null ? ` · ${num(item.weight_percent,2)}%` : ''}</span></div>`;
   }
 
   function render(data) {
@@ -26,7 +31,7 @@
     $('targetSymbol').textContent = `Alvo: ${data.target || '—'}`;
 
     const stocks = data.stock_pressure || {};
-    $('weightedChange').textContent = pct(stocks.weighted_change_percent,3);
+    $('weightedChange').textContent = stocks.weighted_change_percent == null ? 'N/D' : `${pct(stocks.weighted_change_percent,3)} média coberta`;
     $('positiveWeight').textContent = stocks.positive_weight_percent == null ? 'N/D' : `${num(stocks.positive_weight_percent,2)}%`;
     $('negativeWeight').textContent = stocks.negative_weight_percent == null ? 'N/D' : `${num(stocks.negative_weight_percent,2)}%`;
     $('stockDrivers').innerHTML = (stocks.all || []).slice(0,18).map(x=>row(x,true)).join('') || '<div class="muted">Nenhuma ação ponderada capturada.</div>';

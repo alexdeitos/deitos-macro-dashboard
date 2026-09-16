@@ -25,14 +25,16 @@
 
   function renderStocks(data) {
     const s = data.radar?.stock_pressure || {};
-    $('dtWeighted').textContent = pct(s.weighted_change_percent,3);
+    $('dtWeighted').textContent = s.weighted_change_percent == null ? 'N/D' : `${pct(s.weighted_change_percent,3)} média coberta`;
     $('dtPositive').textContent = s.positive_weight_percent == null ? 'N/D' : `${num(s.positive_weight_percent,1)}%`;
     $('dtNegative').textContent = s.negative_weight_percent == null ? 'N/D' : `${num(s.negative_weight_percent,1)}%`;
     $('dtCoverage').textContent = `Cobertura ${num(data.radar?.coverage?.ibov_weight_percent,1)}%`;
     const rows = (s.top_positive || []).slice(0,5).concat((s.top_negative || []).slice(0,5));
     $('stockLeaders').innerHTML = rows.map(x => {
       const contribution = Number(x.contribution_percent || 0); const c = tone(contribution); const width = Math.min(100, Math.abs(contribution)*40);
-      return `<div class="dt-driver ${c}"><span class="sym">${esc(x.symbol)}</span><div class="dt-bar"><i style="width:${width}%"></i></div><span class="val">${pct(contribution,3)}</span></div>`;
+      const raw = Number.isFinite(Number(x.change_percent)) ? Number(x.change_percent) : null;
+      const details = raw == null ? '' : ` · Var ${pct(raw,2)} · Peso ${num(x.weight_percent,2)}%`;
+      return `<div class="dt-driver ${c}"><span class="sym">${esc(x.symbol)}</span><div class="dt-bar"><i style="width:${width}%"></i></div><span class="val">Contrib ${pct(contribution,3)}${details}</span></div>`;
     }).join('') || '<div class="muted">Sem ações ponderadas capturadas.</div>';
   }
 

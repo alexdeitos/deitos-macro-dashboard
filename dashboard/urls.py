@@ -7,6 +7,7 @@ app_name = "dashboard"
 urlpatterns = [
     path("", views.index, name="index"),
     path("daytrade/", views.daytrade, name="daytrade"),
+    path("painel-direcional/", views.clean_panel, name="clean_panel"),
     path("mesa-proprietaria/", prop_views.proprietary_dashboard, name="proprietary_dashboard"),
     path("validacao/", views.validation, name="validation"),
     path("diario/", diary_views.trade_diary, name="trade_diary"),
