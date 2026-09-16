@@ -11,6 +11,7 @@ from django.conf import settings
 from django.utils import timezone as django_timezone
 
 from .http import build_session, get_json
+from .bcb import BCB_PTAX_BASE, fetch_selic_recent
 from .investing_http import InvestingCircuitOpen, InvestingHttpClient
 from .parsing import (
     parse_epoch,
@@ -112,8 +113,8 @@ class AwesomeApiSource:
 
 class BancoCentralSource:
     name = "bcb"
-    sgs_url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1178/dados/ultimos/5"
-    ptax_base = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata"
+    sgs_url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1178/dados"
+    ptax_base = BCB_PTAX_BASE
 
     def fetch(self) -> SourceResult:
         started = time.monotonic()
@@ -123,24 +124,35 @@ class BancoCentralSource:
         errors: list[str] = []
 
         try:
-            rows = get_json(session, self.sgs_url, params={"formato": "json"})
-            if rows:
-                latest = rows[-1]
+            rows, diagnostics = fetch_selic_recent()
+            valid_rows = []
+            for row in rows:
+                value = parse_number(row.get("valor"))
+                if value is None:
+                    continue
+                valid_rows.append(row)
+            if valid_rows:
+                latest = valid_rows[-1]
                 value = parse_number(latest.get("valor"))
-                if value is not None:
-                    quotes.append(
-                        Quote(
-                            symbol="SELIC_252",
-                            name="Selic anualizada base 252",
-                            category="interest_rate",
-                            source=self.name,
-                            observed_at=fetched_at,
-                            value=value,
-                            currency="% a.a.",
-                            source_url=f"{self.sgs_url}?formato=json",
-                            raw={"data_referencia": latest.get("data"), "serie": 1178},
-                        )
+                quotes.append(
+                    Quote(
+                        symbol="SELIC_252",
+                        name="Selic anualizada base 252",
+                        category="interest_rate",
+                        source=self.name,
+                        observed_at=fetched_at,
+                        value=value,
+                        currency="% a.a.",
+                        source_url=diagnostics.get("primary", {}).get("url") or self.sgs_url,
+                        raw={
+                            "data_referencia": latest.get("data"),
+                            "serie": 1178,
+                            "bcb_fetch": diagnostics,
+                        },
                     )
+                )
+            else:
+                raise ValueError("BCB não retornou uma observação numérica para a série 1178.")
         except Exception as exc:
             errors.append(f"Selic: {exc}")
 

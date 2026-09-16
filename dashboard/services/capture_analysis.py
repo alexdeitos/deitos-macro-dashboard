@@ -39,16 +39,48 @@ EXTERNAL_FACTORS = (
 
 RATE_PREFIXES = ("DI1", "DAP", "PRE", "DIF")
 TARGET_SYMBOLS = ("IBOV", "WIN", "WINFUT", "IBOVFUT")
+# IFNC is used as an explicit internal confirmation factor for the index direction.
+IFNC_INTERNAL_WEIGHT = 0.10
+INDEX_CONTRACT_SYMBOL = "WINFUT"
+DOLLAR_CONTRACT_SYMBOL = "WDOFUT"
 
 
 def _num(value: Any) -> float | None:
     try:
         if value in (None, ""):
             return None
-        x = float(value)
+        if isinstance(value, str):
+            text = value.strip().replace("%", "")
+            # Accept both Excel/pt-BR and plain decimal strings.
+            if "," in text and "." in text:
+                text = text.replace(".", "").replace(",", ".")
+            elif "," in text:
+                text = text.replace(",", ".")
+            x = float(text)
+        else:
+            x = float(value)
         return x if math.isfinite(x) else None
     except (TypeError, ValueError):
         return None
+
+
+def _effective_change_percent(point: CapturePoint | None) -> float | None:
+    """Return the real Profit VAR for CONFIG_CAPTURA when available.
+
+    Older auto-sync records stored the RTD VAR in metadata but accidentally
+    persisted an interval-to-interval return in change_percent. Prefer the
+    explicit RTD field when present so historical rows are repaired at read
+    time without requiring a destructive database rewrite.
+    """
+    if point is None:
+        return None
+    metadata = point.metadata if isinstance(point.metadata, dict) else {}
+    if point.sheet_name == "CONFIG_CAPTURA":
+        for key in ("rtD_field_c", "rtd_field_c", "variation_percent", "profit_var"):
+            value = _num(metadata.get(key))
+            if value is not None:
+                return value
+    return _num(point.change_percent)
 
 
 def _parse_iso(value: Any):
@@ -147,7 +179,7 @@ def _weighted_stocks(latest: dict[str, CapturePoint], weights: dict[str, float])
                 if alias in latest:
                     point = latest[alias]
                     break
-        change = _num(point.change_percent) if point else None
+        change = _effective_change_percent(point)
         if change is None:
             continue
         contribution = change * weight
@@ -215,7 +247,7 @@ def _external_latest(latest: dict[str, CapturePoint]) -> dict[str, dict[str, Any
                     break
         public = public_quotes.get(symbol) if isinstance(public_quotes, dict) else None
         if point is not None:
-            change = _num(point.change_percent)
+            change = _effective_change_percent(point)
             value = _num(point.value)
             source = "Excel/Profit capture"
             observed = point.observed_at.isoformat()
@@ -275,7 +307,7 @@ def _captured_rate(latest: dict[str, CapturePoint]) -> dict[str, Any] | None:
         return None
     candidates.sort(key=lambda p: p.observed_at, reverse=True)
     point = candidates[0]
-    change = _num(point.change_percent)
+    change = _effective_change_percent(point)
     if change is None:
         return None
     return {
@@ -299,12 +331,13 @@ def _correlations(target: CapturePoint | None) -> list[dict[str, Any]]:
     rows = (
         CapturePoint.objects.filter(observed_at__gte=start, symbol__in=wanted)
         .order_by("observed_at", "id")
-        .values_list("observed_at", "symbol", "change_percent")
+        .only("observed_at", "symbol", "change_percent", "metadata", "sheet_name")
     )
 
     buckets: dict[str, dict[str, float]] = defaultdict(dict)
-    for observed_at, symbol, change in rows.iterator(chunk_size=5000):
-        number = _num(change)
+    for point in rows.iterator(chunk_size=5000):
+        number = _effective_change_percent(point)
+        observed_at, symbol = point.observed_at, point.symbol
         if number is None:
             continue
         key = observed_at.replace(microsecond=0).isoformat()
@@ -375,6 +408,35 @@ def _direction(score: float | None) -> tuple[str, str]:
     return "MISTO / LATERAL", "neutral"
 
 
+def _captured_instrument(latest: dict[str, CapturePoint], symbol: str) -> dict[str, Any]:
+    point = latest.get(symbol)
+    if point is None:
+        return {
+            "symbol": symbol,
+            "available": False,
+            "value": None,
+            "change_percent": None,
+            "volume": None,
+            "trades": None,
+            "observed_at": None,
+            "source": None,
+        }
+    change = _effective_change_percent(point)
+    return {
+        "symbol": symbol,
+        "available": True,
+        "value": _num(point.value),
+        "change_percent": change,
+        "volume": _num(point.volume),
+        "trades": _num(point.trades),
+        "observed_at": point.observed_at.isoformat(),
+        "source": (
+            "Excel/Profit"
+            if isinstance(point.metadata, dict) and point.metadata.get("source") == "profit_excel_com"
+            else "CONFIG_CAPTURA"
+        ),
+    }
+
 def build_index_radar(*, force: bool = False) -> dict[str, Any]:
     if not force:
         cached = cache.get(CACHE_KEY)
@@ -412,6 +474,14 @@ def build_index_radar(*, force: bool = False) -> dict[str, Any]:
     if stock_signal is not None:
         weighted_signals.append((stock_signal, 0.55))
 
+    # IFNC comes directly from CONFIG_CAPTURA/Profit and acts as an explicit
+    # financial-sector confirmation for the index. It is not part of the
+    # official IBOV stock-weight coverage; it is a separate directional factor.
+    ifnc = _captured_instrument(latest, "IFNC")
+    if ifnc["change_percent"] is not None:
+        ifnc_signal = _signal_from_percent(ifnc["change_percent"], 1.0)
+        if ifnc_signal is not None:
+            weighted_signals.append((ifnc_signal, IFNC_INTERNAL_WEIGHT))
     rate = _captured_rate(latest)
     if rate is not None:
         weighted_signals.append((rate["signal"], 0.08))
@@ -452,6 +522,8 @@ def build_index_radar(*, force: bool = False) -> dict[str, Any]:
         )
     if rate:
         context_lines.append(f"Juros B3: {rate['symbol']} {rate['change_percent']:+.3f}%, sinal invertido para ações.")
+    if ifnc["change_percent"] is not None:
+        context_lines.append(f"IFNC: {ifnc['change_percent']:+.3f}% · confirmação do setor financeiro.")
 
     result = {
         "available": bool(latest),
@@ -473,6 +545,12 @@ def build_index_radar(*, force: bool = False) -> dict[str, Any]:
             "weights_complete": bool(weights_info.get("complete", False)),
         },
         "stock_pressure": stocks,
+        "ifnc": ifnc,
+        "captured_instruments": {
+            "WINFUT": _captured_instrument(latest, "WINFUT"),
+            "WDOFUT": _captured_instrument(latest, "WDOFUT"),
+            "IFNC": ifnc,
+        },
         "external_factors": factors,
         "correlations": correlation,
         "context": context_lines,
@@ -501,6 +579,7 @@ def build_index_radar(*, force: bool = False) -> dict[str, Any]:
         "methodology": {
             "index_stock_pressure": "Soma ponderada das variações das ações pela participação teórica do Ibovespa; pesos ausentes não são inventados e a cobertura é informada.",
             "external_score": "Fatores externos recebem pesos explícitos e são renormalizados somente entre sinais disponíveis. VIX, DXY e juros são invertidos por pressão típica sobre ações; a leitura é contextual, não uma regra determinística.",
+            "ifnc_confirmation": "IFNC do Profit/Excel entra como fator separado de confirmação do setor financeiro, com peso explícito de 10% no composto direcional do índice.",
             "correlation": "Correlação de Pearson intradiária calculada com capturas do Excel quando disponíveis e, como fallback, com o histórico persistido de MarketPoint do dashboard.",
             "disclaimer": "Indicação de viés, não probabilidade de acerto, recomendação financeira ou ordem de compra/venda.",
         },

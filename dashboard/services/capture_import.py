@@ -142,27 +142,14 @@ def sync_live_workbook() -> dict[str, Any]:
             "message": "Nenhum valor numérico disponível na CONFIG_CAPTURA. Verifique o RTDTrading.RTDServer no Excel/Profit ou use a ponte Windows COM.",
         }
 
-    # Build previous-price map to derive the true return between synchronized
-    # snapshots. This makes the radar useful even when CONFIG_CAPTURA's RTD
-    # columns do not contain a daily percentage change field.
-    symbols = [r["symbol"] for r in rows]
-    previous = {}
-    qs = (
-        CapturePoint.objects.filter(
-            sheet_name="CONFIG_CAPTURA", symbol__in=symbols, observed_at__lt=snapshot_at
-        )
-        .order_by("symbol", "-observed_at", "-id")
-        .only("symbol", "value", "observed_at")
-    )
-    for point in qs.iterator(chunk_size=5000):
-        if point.symbol not in previous and point.value not in (None, 0):
-            previous[point.symbol] = float(point.value)
-
     objects = []
     for row in rows:
         current = float(row["value"])
-        prev = previous.get(row["symbol"])
-        change = ((current / prev) - 1.0) * 100.0 if prev and prev > 0 else None
+        # CONFIG_CAPTURA column C is the Profit RTD VAR field and is the
+        # authoritative daily/market variation. Never derive variation from
+        # the previous Django snapshot: that would turn a daily VAR into a
+        # one-minute/one-interval return and can invert the analysis.
+        change = _number(row.get("field_c"))
         objects.append(
             CapturePoint(
                 observed_at=snapshot_at,
@@ -177,6 +164,7 @@ def sync_live_workbook() -> dict[str, Any]:
                     "rtD_field_c": str(row["field_c"]) if row["field_c"] is not None else None,
                     "rtD_field_d": str(row["field_d"]) if row["field_d"] is not None else None,
                     "rtD_field_e": str(row["field_e"]) if row["field_e"] is not None else None,
+                    "variation_source": "profit_rtd_var",
                 },
             )
         )
@@ -201,11 +189,27 @@ def sync_live_workbook() -> dict[str, Any]:
 
 
 def _number(value: Any) -> float | None:
+    """Parse Excel/RTD numeric values without corrupting decimal points.
+
+    Accepts numeric cells plus pt-BR strings (1.234,56) and plain decimal
+    strings (1234.56). Percent signs are ignored.
+    """
     if value in (None, ""):
         return None
     try:
         if isinstance(value, str):
-            value = value.strip().replace("%", "").replace(".", "").replace(",", ".")
+            text = value.strip().replace("%", "").replace("\xa0", "").replace(" ", "")
+            if not text:
+                return None
+            if "," in text and "." in text:
+                # Last separator is the decimal separator.
+                if text.rfind(",") > text.rfind("."):
+                    text = text.replace(".", "").replace(",", ".")
+                else:
+                    text = text.replace(",", "")
+            elif "," in text:
+                text = text.replace(",", ".")
+            return float(text)
         return float(value)
     except (ValueError, TypeError):
         return None
