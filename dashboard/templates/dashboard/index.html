@@ -70,7 +70,7 @@
         <div id="lastUpdate" class="muted">Nenhuma coleta carregada.</div>
     </div>
     <div class="toolbar-actions">
-        <div class="frp0-calculator" aria-label="Calculadora FRP0 com paridade REAL / EUR-USD">
+        <div class="frp0-calculator" aria-label="Dólar justo: paridade REAL / EUR-USD + FRP0 do Profit">
             <label for="frp0Input">FRP0</label>
             <input
                 id="frp0Input"
@@ -82,7 +82,7 @@
                 aria-describedby="frp0Result"
             >
             <button id="frp0CalculateButton" class="button secondary" type="button">Calcular</button>
-            <output id="frp0Result" class="frp0-result" aria-live="polite">Paridade + FRP0: N/D</output>
+            <output id="frp0Result" class="frp0-result" aria-live="polite">Dólar justo: N/D</output>
         </div>
         <button id="refreshButton" class="button" type="button">Atualizar fontes agora</button>
     </div>
@@ -101,6 +101,7 @@
     <article class="card"><span>Brent</span><strong id="qBRENT">N/D</strong><small id="cBRENT">Fonte indisponível</small></article>
     <article class="card"><span>Minério</span><strong id="qIRON_ORE">N/D</strong><small id="cIRON_ORE">Fonte indisponível</small></article>
     <article class="card win-opening-estimate"><span>Abertura WIN</span><strong id="qWIN_OPENING">N/D</strong><small id="cWIN_OPENING">Aguardando Ibovespa e Dow Jones (driver principal)</small></article>
+    <article class="card frp0-dashboard-card" aria-label="FRP0 do Excel e Dólar justo calculado com paridade"><span>FRP0 · Dólar justo</span><strong id="qFRP0_CARD">N/D</strong><small id="cFRP0_CARD">Excel · CONFIG_CAPTURA · B37</small><div class="frp0-card-fair"><span>Dólar justo</span><strong id="qFRP0_FAIR">N/D</strong></div></article>
 </section>
 
 <section class="panel index-opening-model" id="indexOpeningModel">

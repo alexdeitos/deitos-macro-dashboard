@@ -208,7 +208,32 @@
 
     let latestRealEurUsdParity = null;
 
-    function calculateFrp0Parity() {
+    function renderFrp0DashboardCard(profitExcel = {}) {
+        const frp0Node = byId("qFRP0_CARD");
+        const sourceNode = byId("cFRP0_CARD");
+        const fairNode = byId("qFRP0_FAIR");
+
+        if (!frp0Node || !sourceNode || !fairNode) {
+            return;
+        }
+
+        const frp0 = toNumeric(profitExcel?.frp0_points);
+        const fair = frp0 !== null && latestRealEurUsdParity !== null
+            ? (latestRealEurUsdParity * 1000) + frp0
+            : null;
+
+        frp0Node.textContent = frp0 === null ? "N/D" : number(frp0, 3);
+        fairNode.textContent = fair === null ? "N/D" : number(fair, 3);
+
+        const source = profitExcel?.frp0_source || "Excel / Profit";
+        const sheet = profitExcel?.frp0_sheet || "CONFIG_CAPTURA";
+        const cell = profitExcel?.frp0_cell || "B37";
+        sourceNode.textContent = `${source} · ${sheet}!${cell}`;
+        sourceNode.className = frp0 === null ? "error" : "";
+        fairNode.className = fair === null ? "error" : "";
+    }
+
+    function calculateFrp0Parity(frp0Override = null) {
         const input = byId("frp0Input");
         const result = byId("frp0Result");
 
@@ -216,7 +241,13 @@
             return;
         }
 
-        const frp0 = toNumeric(input.value);
+        const frp0 = frp0Override === null
+            ? toNumeric(input.value)
+            : toNumeric(frp0Override);
+
+        if (frp0Override !== null && frp0 !== null) {
+            input.value = number(frp0, 3);
+        }
 
         result.className = "frp0-result";
 
@@ -239,7 +270,7 @@
          * Exemplo: 5162,9 + 36,80 = 5199,70.
          */
         const total = (latestRealEurUsdParity * 1000) + frp0;
-        result.textContent = `Paridade + FRP0: ${number(total, 2)}`;
+        result.textContent = `Dólar justo: ${number(total, 3)}`;
         result.classList.add("has-value");
     }
 
@@ -326,7 +357,7 @@
                 : "";
     }
 
-    function renderQuotes(quotes) {
+    function renderQuotes(quotes, profitExcel = {}) {
         renderQuote(
             "USD_BRL",
             quotes.USD_BRL,
@@ -341,6 +372,18 @@
 
         latestRealEurUsdParity =
             toNumeric(quotes.REAL_EUR_USD_PARITY?.value);
+
+        const frp0 = toNumeric(profitExcel?.frp0_points);
+        if (frp0 !== null && latestRealEurUsdParity !== null) {
+            calculateFrp0Parity(frp0);
+        } else if (frp0 === null) {
+            const input = byId("frp0Input");
+            if (input) {
+                input.value = "";
+            }
+        }
+
+        renderFrp0DashboardCard(profitExcel);
 
         renderQuote(
             "DOL_FUT",
@@ -1580,7 +1623,8 @@
 
     function renderDashboard(data) {
         renderQuotes(
-            data.quotes || {}
+            data.quotes || {},
+            data.profit_excel || {}
         );
 
         renderAnalysis(

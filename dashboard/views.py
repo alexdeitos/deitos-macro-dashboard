@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import CollectionRun
+from .models import CapturePoint, CollectionRun
 from .services.collector import MarketCollector
 from .services.economic_calendar import TradingEconomicsCalendarCollector, calendar_payload
 from .services.daytrade import build_daytrade
@@ -93,6 +93,100 @@ def api_dashboard(request):
     response = dict(payload)
     response["available"] = True
     response["history"] = history_payload()
+
+    # FRP0 is authoritative from the Excel/Profit CONFIG_CAPTURA capture.
+    # Priority: fresh Windows COM bridge (live in-memory Excel) -> current saved
+    # workbook -> older database snapshot. This prevents a stale cached workbook
+    # from overriding a live RTD value.
+    frp0_point = (
+        CapturePoint.objects.filter(
+            sheet_name="CONFIG_CAPTURA",
+            symbol__iexact="FRP0",
+            value__isnull=False,
+            metadata__source="profit_excel_com",
+        )
+        .order_by("-observed_at", "-id")
+        .first()
+    )
+
+    workbook_frp0 = None
+    workbook_frp0_cell = None
+    workbook_frp0_mtime = None
+    try:
+        from .services.capture_import import configured_live_workbook_path, _number
+        from openpyxl import load_workbook
+
+        workbook_path = configured_live_workbook_path()
+        if workbook_path.exists():
+            workbook_frp0_mtime = workbook_path.stat().st_mtime
+            wb = load_workbook(workbook_path, read_only=True, data_only=True)
+            try:
+                ws = wb["CONFIG_CAPTURA"]
+                for excel_row, row in enumerate(ws.iter_rows(min_row=10, values_only=True), start=10):
+                    symbol = str(row[0] or "").strip().upper() if row else ""
+                    if symbol != "FRP0":
+                        continue
+                    value = _number(row[1] if len(row) > 1 else None)
+                    if value is not None:
+                        workbook_frp0 = value
+                        workbook_frp0_cell = f"B{excel_row}"
+                        break
+            finally:
+                wb.close()
+    except Exception:
+        workbook_frp0 = None
+        workbook_frp0_cell = None
+        workbook_frp0_mtime = None
+
+    chosen_value = None
+    chosen_at = None
+    chosen_source = None
+
+    # A recent COM bridge sample represents the actual in-memory RTD value.
+    if frp0_point is not None:
+        age = (timezone.now() - frp0_point.observed_at).total_seconds()
+        if 0 <= age <= 90:
+            chosen_value = frp0_point.value
+            chosen_at = frp0_point.observed_at
+            chosen_source = "Excel/Profit via ponte"
+            frp0_point = None  # prevent fallback selection below
+
+    # When there is no fresh live bridge sample, use the workbook itself.
+    if chosen_value is None and workbook_frp0 is not None:
+        from datetime import datetime as _datetime, timezone as _dt_timezone
+        from django.utils import timezone as _timezone
+        chosen_value = workbook_frp0
+        if workbook_frp0_mtime is not None:
+            chosen_at = _datetime.fromtimestamp(
+                workbook_frp0_mtime,
+                tz=_dt_timezone.utc,
+            ).astimezone(_timezone.get_current_timezone())
+        chosen_source = "COTACOES.xlsm / CONFIG_CAPTURA"
+
+    # Last-resort database fallback keeps the dashboard useful when Excel has
+    # not yet been saved/mounted in the container.
+    if chosen_value is None:
+        fallback_point = (
+            CapturePoint.objects.filter(
+                sheet_name="CONFIG_CAPTURA",
+                symbol__iexact="FRP0",
+                value__isnull=False,
+            )
+            .order_by("-observed_at", "-id")
+            .first()
+        )
+        if fallback_point is not None:
+            chosen_value = fallback_point.value
+            chosen_at = fallback_point.observed_at
+            chosen_source = "CONFIG_CAPTURA (última captura salva)"
+
+    response["profit_excel"] = {
+        "frp0_points": chosen_value,
+        "frp0_observed_at": chosen_at.isoformat() if chosen_at else None,
+        "frp0_source": chosen_source,
+        "frp0_sheet": "CONFIG_CAPTURA",
+        "frp0_cell": workbook_frp0_cell or "B37",
+    }
     return JsonResponse(response)
 
 
