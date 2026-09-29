@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import capture_views, diary_views, dollar_views, fed_views, prop_views, views
+from . import capture_views, diary_views, dollar_views, fed_views, ict_views, prop_views, views
 
 app_name = "dashboard"
 
@@ -14,6 +14,7 @@ urlpatterns = [
     path("dolar/", dollar_views.dollar_analysis, name="dollar_analysis"),
     path("eua/", fed_views.fed_analysis, name="fed_analysis"),
     path("radar-indice/", capture_views.index_radar, name="index_radar"),
+    path("ict-analysis/", ict_views.ict_analysis, name="ict_analysis"),
     path("validacao-operacoes/", capture_views.operations_validation, name="operations_validation"),
     path("diario/prints/<int:trade_id>/", diary_views.trade_screenshot, name="trade_screenshot"),
     path("api/dashboard/", views.api_dashboard, name="api_dashboard"),
@@ -30,6 +31,7 @@ urlpatterns = [
     path("api/fed-analysis/", fed_views.api_fed_analysis, name="api_fed_analysis"),
     path("api/fed-analysis/refresh/", fed_views.api_fed_refresh, name="api_fed_refresh"),
     path("api/radar-indice/", capture_views.api_index_radar, name="api_index_radar"),
+    path("api/ict-analysis/", ict_views.api_ict_analysis, name="api_ict_analysis"),
     path("api/radar-indice/refresh/", capture_views.api_index_radar_refresh, name="api_index_radar_refresh"),
     path("api/capturas/import/", capture_views.api_import_captures, name="api_import_captures"),
     path("api/capturas/ingest/", capture_views.api_ingest_captures, name="api_ingest_captures"),

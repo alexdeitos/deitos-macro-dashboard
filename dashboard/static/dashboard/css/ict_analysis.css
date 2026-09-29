@@ -1,0 +1,61 @@
+.ict-header { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; }
+.eyebrow { color:var(--muted); font-size:11px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; }
+.ict-header h1 { margin:4px 0 5px; font-size:30px; }
+.ict-header p { max-width:780px; margin:0; }
+.ict-controls { display:flex; gap:10px; align-items:end; flex-wrap:wrap; }
+.ict-controls label { display:flex; flex-direction:column; gap:5px; color:var(--muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+.ict-controls input[type=file], .ict-controls select { min-height:42px; padding:9px 11px; border-radius:8px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); }
+.file-picker input { max-width:260px; }
+.ict-cards { grid-template-columns:repeat(8,minmax(0,1fr)); }
+.ict-cards .card { min-height:105px; }
+.ict-cards .card strong { font-variant-numeric:tabular-nums; }
+.section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
+.section-head h2 { margin:3px 0 0; }
+.ict-chart { height:680px; min-height:520px; }
+.legend { display:flex; gap:14px; flex-wrap:wrap; color:var(--muted); font-size:11px; margin-top:5px; }
+.legend span { display:flex; align-items:center; gap:5px; }
+.legend-box { width:18px; height:9px; border:1px solid currentColor; display:inline-block; }
+.fvg-bull { color:#34d399; background:rgba(52,211,153,.18); }
+.fvg-bear { color:#fb7185; background:rgba(251,113,133,.18); }
+.ob-bull { color:#60a5fa; background:rgba(96,165,250,.18); }
+.ob-bear { color:#f59e0b; background:rgba(245,158,11,.18); }
+.legend-line { width:18px; border-top:2px dashed currentColor; display:inline-block; }
+.liquidity { color:#c084fc; }
+.sweep { color:#fbbf24; }
+.mss { color:#60a5fa; }
+.poi-list, .candidate-list, .event-list { display:grid; gap:8px; max-height:430px; overflow:auto; }
+.poi-row, .candidate, .event { padding:11px 12px; border:1px solid var(--border); border-radius:9px; background:var(--panel-2); }
+.poi-row { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; }
+.poi-badge { font-size:10px; font-weight:900; padding:4px 7px; border-radius:6px; border:1px solid var(--border); }
+.poi-badge.bullish { color:var(--green); border-color:rgba(52,211,153,.4); }
+.poi-badge.bearish { color:var(--red); border-color:rgba(251,113,133,.4); }
+.poi-price { font-weight:800; font-variant-numeric:tabular-nums; }
+.poi-distance { color:var(--muted); font-size:11px; }
+.candidate { border-color:rgba(251,191,36,.45); }
+.candidate strong { display:block; color:var(--yellow); margin-bottom:3px; }
+.candidate small { color:var(--muted); }
+.event { display:flex; justify-content:space-between; gap:12px; }
+.event-name { font-weight:800; }
+.event-time { color:var(--muted); font-variant-numeric:tabular-nums; }
+.table-wrap { overflow:auto; max-height:430px; }
+.ict-table { width:100%; border-collapse:collapse; font-size:12px; }
+.ict-table th, .ict-table td { padding:9px 8px; border-bottom:1px solid rgba(35,54,82,.65); text-align:left; }
+.ict-table th { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+.ict-table td.num { font-variant-numeric:tabular-nums; }
+.muted-cell { color:var(--muted); }
+.method-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+.method-item { padding:11px; background:var(--panel-2); border-radius:8px; }
+.method-item span { display:block; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+.method-item strong { display:block; margin-top:4px; font-size:12px; line-height:1.4; }
+.empty-state { color:var(--muted); padding:18px 0; }
+@media (max-width:1200px) {
+  .ict-cards { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .method-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:800px) {
+  .ict-header { flex-direction:column; align-items:stretch; }
+  .ict-controls { align-items:stretch; }
+  .ict-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .grid.two { grid-template-columns:1fr; }
+  .ict-chart { height:520px; }
+}
