@@ -53,7 +53,29 @@
     $('planChecks').innerHTML=[['Resultado / plano',e.performance_ok?'OK':'REVISAR',e.performance_ok],['Contratos/dia',`${e.max_contracts_observed} / ${a.max_contracts_day||'sem limite'}`,e.contract_limit_ok],['Controle de risco',e.risk_ok?'OK':'REVISAR',e.risk_ok]].map(x=>`<div class="check-row ${x[2]?'ok':'bad'}"><span>${x[0]}</span><strong>${x[1]}</strong></div>`).join('');
     $('perfMetrics').innerHTML=[['Win rate',num(m.win_rate)+'%'],['Trades ganhos',num(m.winning_trades)],['Trades perdidos',num(m.losing_trades)],['Profit factor',m.profit_factor==null?'N/D':num(m.profit_factor)],['Resultado bruto',money(e.gross_result)],['Custos operacionais',money(e.operational_costs)],['Resultado / saldo inicial',m.result_vs_starting_balance_percent==null?'N/D':num(m.result_vs_starting_balance_percent)+'%']].map(x=>`<div class="metric-row"><span>${x[0]}</span><strong>${x[1]}</strong></div>`).join('');
     $('guidance').innerHTML=(e.guidance||[]).map(g=>`<div class="guidance-item">${g}</div>`).join('')||'<div class="empty-state">Sem orientações adicionais.</div>';
+    renderFiftyPercentRule(m.fifty_percent_take_rule||{});
   }
+  function renderFiftyPercentRule(rule){
+    const status=$('fiftyRuleStatus'), summary=$('fiftyRuleSummary'), rows=$('fiftyRuleRows');
+    if(!status||!summary||!rows)return;
+    if(!rule.enabled){
+      status.textContent='TAKE NÃO CONFIGURADO'; status.className='pill partial';
+      summary.innerHTML='<div class="empty-state">Configure o Take/meta para habilitar a validação de 50%.</div>';
+      rows.innerHTML='<tr><td colspan="5" class="muted">Regra não habilitada.</td></tr>';
+      return;
+    }
+    const violations=rule.violations||[];
+    status.textContent=rule.violated?'ATENÇÃO · LIMITE EXCEDIDO':'OK · NENHUM EXCESSO';
+    status.className=`pill ${rule.violated?'bad':'ok'}`;
+    if(rule.violated){
+      summary.innerHTML=`<div class="fifty-rule-alert"><strong>${violations.length} dia(s) ultrapassaram 50% do take.</strong><span>Limite diário: ${money(rule.daily_limit)} · Excedente total que precisa ser distribuído em outro(s) dia(s): <strong>${money(rule.total_excess_to_earn_other_days)}</strong>.</span></div>`;
+      rows.innerHTML=violations.map(v=>`<tr><td>${new Date(`${v.date}T12:00:00`).toLocaleDateString('pt-BR')}</td><td>${money(v.day_result)}</td><td>${money(v.limit)}</td><td class="negative"><strong>${money(v.excess)}</strong></td><td>Esse excedente deve ser ganho em outro dia.</td></tr>`).join('');
+    }else{
+      summary.innerHTML=`<div class="fifty-rule-ok"><strong>Nenhum dia ultrapassou 50% do take.</strong><span>Take: ${money(rule.take)} · Limite diário: ${money(rule.daily_limit)}.</span></div>`;
+      rows.innerHTML='<tr><td colspan="5" class="muted">Nenhum dia ultrapassou o limite de 50%.</td></tr>';
+    }
+  }
+
   async function loadLatest(){if(!selectedId)return;try{const r=await fetch(`/api/proprietaria/accounts/${selectedId}/latest/`);if(r.status===404){msg('Conta selecionada sem avaliação. Importe um relatório do Profit.');return}const d=await r.json();render(d.evaluation);await loadHistory()}catch(e){msg(e.message,true)}}
   async function loadHistory(){if(!selectedId)return;const r=await fetch(`/api/proprietaria/accounts/${selectedId}/history/`);const d=await r.json();$('historyRows').innerHTML=d.evaluations.length?d.evaluations.map(e=>`<tr><td>${new Date(e.evaluated_at).toLocaleString('pt-BR')}</td><td>${e.report_filename}</td><td>${money(e.current_result)}</td><td><span class="status-pill ${e.status}">${e.status_label}</span></td><td>${e.max_contracts_observed}</td><td>${money(e.max_trade_loss)}</td></tr>`).join(''):'<tr><td colspan="6" class="muted">Nenhuma avaliação salva.</td></tr>'}
   async function importReport(file){if(!selectedId){msg('Selecione ou crie uma conta antes de importar o relatório.',true);return}msg('Importando e avaliando o relatório...');const f=new FormData();f.append('file',file);f.append('account_id',selectedId);try{const r=await fetch('/api/proprietaria/evaluate/',{method:'POST',headers:{'X-CSRFToken':csrf(),Accept:'application/json'},body:f});const d=await r.json();if(!r.ok)throw Error(d.message||'Falha na avaliação');render(d.evaluation);await loadHistory();msg(`Avaliação salva: ${d.evaluation.status_label}.`)}catch(e){msg(e.message,true)}}

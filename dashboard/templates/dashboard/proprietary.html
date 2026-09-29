@@ -46,6 +46,17 @@
     <article class="panel"><span class="prop-kicker">PERFORMANCE</span><h2>Qualidade do relatório</h2><div id="perfMetrics" class="metric-list"></div></article>
   </section>
 
+  <section class="panel prop-fifty-panel">
+    <div class="prop-section-head"><div><span class="prop-kicker">DISTRIBUIÇÃO DO TAKE</span><h2>Regra de 50% do take</h2></div><span id="fiftyRuleStatus" class="pill partial">Aguardando avaliação</span></div>
+    <div id="fiftyRuleSummary" class="fifty-rule-summary"><div class="empty-state">Importe um relatório para verificar se algum dia ultrapassou 50% do take.</div></div>
+    <div class="table-wrap">
+      <table class="prop-table fifty-table">
+        <thead><tr><th>Dia</th><th>Gain do dia</th><th>Limite (50%)</th><th>Excedente</th><th>Leitura</th></tr></thead>
+        <tbody id="fiftyRuleRows"><tr><td colspan="5" class="muted">Nenhuma avaliação disponível.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="panel">
     <div class="prop-section-head"><div><span class="prop-kicker">ORIENTAÇÃO</span><h2>Como melhorar a performance</h2></div><span id="evaluationTime" class="muted">—</span></div>
     <div id="guidance" class="guidance-list"><div class="empty-state">Ainda não há uma avaliação para esta conta.</div></div>

@@ -13,6 +13,7 @@ from dashboard.models import CapturePoint
 
 from .capture_analysis import EXTERNAL_FACTORS, build_index_radar
 from .investing_calendar import collect_investing_daytrade_calendar, investing_daytrade_events
+from .persistence import get_latest_payload
 
 CACHE_KEY = "macro-dashboard:daytrade:v1"
 CACHE_TTL = 20
@@ -333,8 +334,29 @@ def build_daytrade(*, force: bool = False) -> dict[str, Any]:
     elif event_ctx["warning_risk"]:
         state = "CAUTELA"
 
+    dashboard_payload = get_latest_payload() or {}
+    index_opening = dict(dashboard_payload.get("index_opening", {}) or {})
+    captured = radar.get("captured_instruments", {}) or {}
+    winfut = captured.get("WINFUT", {}) or {}
+    if winfut.get("value") is not None:
+        # Keep model fair/opening outputs from the existing Dashboard, but anchor
+        # the live observed WIN price to Profit/Excel. This avoids showing IBOV
+        # points as if they were the futures contract.
+        index_opening["observed_points"] = _num(winfut.get("value"))
+        index_opening["observed_source"] = "CONFIG_CAPTURA / WINFUT"
+        if index_opening.get("expected_change_percent") is not None:
+            expected = float(index_opening["expected_change_percent"])
+            index_opening["opening_estimate_points"] = round(
+                float(winfut["value"]) * (1.0 + expected / 100.0), 3
+            )
+    ifnc = captured.get("IFNC", {}) or {}
+    if ifnc.get("change_percent") is not None:
+        # expose the internal bank-index confirmation to the panel without
+        # altering the existing Dashboard payload.
+        index_opening["ifnc_change_percent"] = _num(ifnc.get("change_percent"))
     payload = {
         "generated_at": timezone.now().isoformat(),
+        "index_opening": index_opening,
         "direction": direction,
         "tone": tone,
         "score": round(score * 100, 1),

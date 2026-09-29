@@ -30,3 +30,18 @@ class ProprietarySnapshotTests(TestCase):
         e1.refresh_from_db()
         self.assertFalse(e1.is_current)
         self.assertTrue(e2.is_current)
+
+    def test_detects_days_above_fifty_percent_of_take_and_excess(self):
+        # Take = 5.000; 50% = 2.500. Net daily gains after fees are used.
+        r=PerformanceReport.objects.create(filename="50pct.csv", total_rows=3)
+        day1=timezone.make_aware(datetime(2026,9,2,10,0,0))
+        day2=timezone.make_aware(datetime(2026,9,3,10,0,0))
+        PerformanceTrade.objects.create(report=r,row_number=1,symbol="WINV26",opened_at=day1,buy_qty=1,sell_qty=1,result=Decimal("3000"))
+        PerformanceTrade.objects.create(report=r,row_number=2,symbol="WINV26",opened_at=day2,buy_qty=1,sell_qty=1,result=Decimal("1000"))
+        e=evaluate_report(self.account,r)
+        rule=e.metrics["fifty_percent_take_rule"]
+        self.assertTrue(rule["violated"])
+        self.assertEqual(rule["violation_count"],1)
+        self.assertEqual(rule["violations"][0]["date"],"2026-09-02")
+        self.assertEqual(rule["violations"][0]["excess"],499.3)
+        self.assertEqual(rule["total_excess_to_earn_other_days"],499.3)

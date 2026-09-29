@@ -36,6 +36,13 @@ def _brl(v: Decimal) -> str:
     text = f"{_money(v):,.2f}"
     return "R$ " + text.replace(",", "X").replace(".", ",").replace("X", ".")
 
+def datetime_format_date(value: str) -> str:
+    try:
+        return date.fromisoformat(value).strftime("%d/%m/%Y")
+    except (TypeError, ValueError):
+        return value
+
+
 def _decimal(value: Any) -> Decimal:
     text = str(value if value is not None else "0").strip().replace("R$", "").replace(" ", "")
     if "," in text and "." in text:
@@ -92,6 +99,26 @@ def _evaluate_metrics(report: PerformanceReport, account: ProprietaryAccount) ->
         daily_contracts[day] = max(daily_contracts[day], max(t.buy_qty or 0, t.sell_qty or 0))
     max_daily_loss = abs(min(daily.values(), default=D0))
     max_contracts = max(daily_contracts.values(), default=0)
+
+    # Controle de distribuição do resultado: nenhum dia positivo deve
+    # ultrapassar 50% do take/meta configurado. O excedente é destacado
+    # para que fique claro quanto do resultado precisa ser distribuído
+    # entre outros dias. O cálculo usa o mesmo resultado líquido após custos
+    # usado para avaliar a meta.
+    half_take = (account.approval_target * Decimal("0.50")) if account.approval_target > D0 else D0
+    fifty_percent_violations = []
+    if half_take > D0:
+        for day, day_result in sorted(daily.items()):
+            if day_result > half_take:
+                excess = day_result - half_take
+                fifty_percent_violations.append({
+                    "date": day.isoformat(),
+                    "day_result": _money(day_result),
+                    "limit": _money(half_take),
+                    "excess": _money(excess),
+                })
+    total_fifty_excess = sum((Decimal(str(item["excess"])) for item in fifty_percent_violations), D0)
+
     remaining_target = max(account.approval_target - total, D0)
     remaining_loss_buffer = max(account.max_loss + total, D0) if account.max_loss > D0 else D0
     target_reached = account.approval_target > D0 and total >= account.approval_target
@@ -127,6 +154,12 @@ def _evaluate_metrics(report: PerformanceReport, account: ProprietaryAccount) ->
         guidance.append("O pior dia consumiu mais de 25% do limite total configurado; considere reduzir o risco diário e interromper após sequência adversa.")
     if total <= D0 and trades and not eliminated:
         guidance.append("O resultado líquido ainda está abaixo de zero; priorize consistência e preservação do limite antes de buscar aceleração da meta.")
+    if fifty_percent_violations:
+        first = fifty_percent_violations[0]
+        guidance.append(
+            f"O dia {datetime_format_date(first['date'])} ficou { _brl(Decimal(str(first['excess']))) } acima de 50% do take. "
+            f"Esse excedente precisa ser distribuído em outro dia; excedente total identificado: {_brl(total_fifty_excess)}."
+        )
     if gross_total > D0 and operational_costs > D0:
         cost_ratio = operational_costs / gross_total * Decimal("100")
         guidance.append(f"Os custos operacionais consumiram {cost_ratio:.1f}% do resultado bruto. O cálculo da meta, perda e margem usa o resultado líquido após custos.")
@@ -158,6 +191,15 @@ def _evaluate_metrics(report: PerformanceReport, account: ProprietaryAccount) ->
             "win_rate": round(sum(1 for t in trades if net_results[t.id] > D0) / len(trades) * 100, 1) if trades else 0,
             "best_day": _money(max(daily.values(), default=D0)),
             "worst_day": _money(min(daily.values(), default=D0)),
+            "fifty_percent_take_rule": {
+                "enabled": account.approval_target > D0,
+                "take": _money(account.approval_target),
+                "daily_limit": _money(half_take),
+                "violated": bool(fifty_percent_violations),
+                "violation_count": len(fifty_percent_violations),
+                "total_excess_to_earn_other_days": _money(total_fifty_excess),
+                "violations": fifty_percent_violations,
+            },
             "result_vs_starting_balance_percent": round(float(total / account.starting_balance * 100), 2) if account.starting_balance > D0 else None,
             "max_loss_vs_starting_balance_percent": round(float(account.max_loss / account.starting_balance * 100), 2) if account.starting_balance > D0 and account.max_loss > D0 else None,
             "profit_factor": round(float(sum((net_results[t.id] for t in trades if net_results[t.id] > D0), D0) / abs(sum((net_results[t.id] for t in trades if net_results[t.id] < D0), D0))), 2) if sum((net_results[t.id] for t in trades if net_results[t.id] < D0), D0) < D0 else None,

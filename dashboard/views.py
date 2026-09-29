@@ -10,13 +10,15 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import CollectionRun
+from .models import CapturePoint, CollectionRun
 from .services.collector import MarketCollector
 from .services.economic_calendar import TradingEconomicsCalendarCollector, calendar_payload
 from .services.daytrade import build_daytrade
 from .services.news import InvestingNewsCollector, news_payload
 from .services.persistence import get_latest_payload, history_payload, persist_payload
 from .services.remote_market import remote_market_enabled
+from .services.excel_market import read_excel_market_snapshot, read_workbook_cell
+from .services.win_opening import calculate_win_opening
 import hmac
 import os
 REFRESH_LOCK_KEY = "market-dashboard:refresh-lock"
@@ -93,7 +95,164 @@ def api_dashboard(request):
     response = dict(payload)
     response["available"] = True
     response["history"] = history_payload()
-    return JsonResponse(response)
+
+    # FRP0 is authoritative from the Excel/Profit CONFIG_CAPTURA capture.
+    # Priority: fresh Windows COM bridge (live in-memory Excel) -> current saved
+    # workbook -> older database snapshot. This prevents a stale cached workbook
+    # from overriding a live RTD value.
+    frp0_point = (
+        CapturePoint.objects.filter(
+            sheet_name="CONFIG_CAPTURA",
+            symbol__iexact="FRP0",
+            value__isnull=False,
+            metadata__source="profit_excel_com",
+        )
+        .order_by("-observed_at", "-id")
+        .first()
+    )
+
+    workbook_frp0 = None
+    workbook_frp0_cell = None
+    workbook_frp0_mtime = None
+    try:
+        from .services.capture_import import configured_live_workbook_path, _number
+        from openpyxl import load_workbook
+
+        workbook_path = configured_live_workbook_path()
+        if workbook_path.exists():
+            workbook_frp0_mtime = workbook_path.stat().st_mtime
+            wb = load_workbook(workbook_path, read_only=True, data_only=True)
+            try:
+                ws = wb["CONFIG_CAPTURA"]
+                for excel_row, row in enumerate(ws.iter_rows(min_row=10, values_only=True), start=10):
+                    symbol = str(row[0] or "").strip().upper() if row else ""
+                    if symbol != "FRP0":
+                        continue
+                    value = _number(row[1] if len(row) > 1 else None)
+                    if value is not None:
+                        workbook_frp0 = value
+                        workbook_frp0_cell = f"B{excel_row}"
+                        break
+            finally:
+                wb.close()
+    except Exception:
+        workbook_frp0 = None
+        workbook_frp0_cell = None
+        workbook_frp0_mtime = None
+
+    chosen_value = None
+    chosen_at = None
+    chosen_source = None
+
+    # A recent COM bridge sample represents the actual in-memory RTD value.
+    if frp0_point is not None:
+        age = (timezone.now() - frp0_point.observed_at).total_seconds()
+        if 0 <= age <= 90:
+            chosen_value = frp0_point.value
+            chosen_at = frp0_point.observed_at
+            chosen_source = "Excel/Profit via ponte"
+            frp0_point = None  # prevent fallback selection below
+
+    # When there is no fresh live bridge sample, use the workbook itself.
+    if chosen_value is None and workbook_frp0 is not None:
+        from datetime import datetime as _datetime, timezone as _dt_timezone
+        from django.utils import timezone as _timezone
+        chosen_value = workbook_frp0
+        if workbook_frp0_mtime is not None:
+            chosen_at = _datetime.fromtimestamp(
+                workbook_frp0_mtime,
+                tz=_dt_timezone.utc,
+            ).astimezone(_timezone.get_current_timezone())
+        chosen_source = "COTACOES.xlsm / CONFIG_CAPTURA"
+
+    # Last-resort database fallback keeps the dashboard useful when Excel has
+    # not yet been saved/mounted in the container.
+    if chosen_value is None:
+        fallback_point = (
+            CapturePoint.objects.filter(
+                sheet_name="CONFIG_CAPTURA",
+                symbol__iexact="FRP0",
+                value__isnull=False,
+            )
+            .order_by("-observed_at", "-id")
+            .first()
+        )
+        if fallback_point is not None:
+            chosen_value = fallback_point.value
+            chosen_at = fallback_point.observed_at
+            chosen_source = "CONFIG_CAPTURA (última captura salva)"
+
+    excel_market = read_excel_market_snapshot(("IBOV", "WINFUT", "SP500_FUT"))
+
+    # The top Ibovespa card is tied to the exact workbook cell requested by
+    # the user: COTACOES.xlsm / CONFIG_CAPTURA!B38. If the saved Excel cache
+    # is unavailable, the existing CONFIG_CAPTURA/bridge path remains a
+    # fallback so the dashboard does not manufacture a value.
+    ibov_cell_capture = read_workbook_cell("B38")
+    # B38 is the authoritative cell requested for the index card.
+    # Do not validate/redirect by the symbol in column A: the user explicitly
+    # wants the value physically stored in CONFIG_CAPTURA!B38.
+    ibov_capture = ibov_cell_capture
+    if ibov_capture is not None:
+        existing_ibov = response.get("quotes", {}).get("IBOV") or {}
+        response.setdefault("quotes", {})["IBOV"] = {
+            **existing_ibov,
+            "symbol": "IBOV",
+            "name": existing_ibov.get("name") or "Ibovespa",
+            "category": existing_ibov.get("category") or "index",
+            "value": ibov_capture["value"],
+            "change_percent": (
+                ibov_capture.get("change_percent")
+                if ibov_capture.get("change_percent") is not None
+                else existing_ibov.get("change_percent")
+            ),
+            "source": ibov_capture.get("source") or existing_ibov.get("source"),
+            "observed_at": ibov_capture.get("observed_at") or existing_ibov.get("observed_at"),
+            "raw": {
+                **(existing_ibov.get("raw") or {}),
+                "excel_capture_symbol": ibov_capture.get("symbol"),
+                "excel_capture_row": ibov_capture.get("row_number"),
+            },
+        }
+
+    win_capture = excel_market.get("WINFUT")
+    sp500_future_capture = excel_market.get("SP500_FUT")
+
+    # Prefer an S&P 500 Futures row from Excel/Profit. If it is not present,
+    # InvestingSource supplies SP500_FUT from its futures page.
+    sp500_future_quote = response.get("quotes", {}).get("SP500_FUT")
+    sp500_future_change = (
+        sp500_future_capture.get("change_percent")
+        if sp500_future_capture is not None
+        else (sp500_future_quote or {}).get("change_percent")
+    )
+    winfut_points = win_capture.get("value") if win_capture is not None else None
+    if winfut_points is None:
+        winfut_points = (response.get("quotes", {}).get("WINFUT") or {}).get("value")
+
+    win_opening = calculate_win_opening(winfut_points, sp500_future_change)
+
+    response["profit_excel"] = {
+        "frp0_points": chosen_value,
+        "frp0_observed_at": chosen_at.isoformat() if chosen_at else None,
+        "frp0_source": chosen_source,
+        "frp0_sheet": "CONFIG_CAPTURA",
+        "frp0_cell": workbook_frp0_cell or "B37",
+        "ibov_points": ibov_capture.get("value") if ibov_capture else None,
+        "ibov_change_percent": ibov_capture.get("change_percent") if ibov_capture else None,
+        "ibov_source": ibov_capture.get("source") if ibov_capture else None,
+        "ibov_cell": ibov_capture.get("cell") if ibov_capture and ibov_capture.get("cell") else (f"B{ibov_capture.get('row_number')}" if ibov_capture and ibov_capture.get("row_number") else None),
+        "winfut_points": win_capture.get("value") if win_capture else None,
+        "winfut_change_percent": win_capture.get("change_percent") if win_capture else None,
+        "winfut_source": win_capture.get("source") if win_capture else None,
+        "winfut_cell": f"B{win_capture.get('row_number')}" if win_capture and win_capture.get("row_number") else None,
+        "sp500_futures_points": (sp500_future_capture or {}).get("value") or (sp500_future_quote or {}).get("value"),
+        "sp500_futures_change_percent": sp500_future_change,
+        "sp500_futures_source": (sp500_future_capture or {}).get("source") or (sp500_future_quote or {}).get("source"),
+        "sp500_futures_cell": f"B{sp500_future_capture.get('row_number')}" if sp500_future_capture and sp500_future_capture.get("row_number") else None,
+        "win_opening": win_opening,
+    }
+    return JsonResponse(response, json_dumps_params={"ensure_ascii": False})
 
 
 def _sync_market_collection() -> dict:

@@ -45,3 +45,16 @@ docker compose exec web python manage.py repair_market_history
 ## Ajuste de 02/09/2026 — Dow Jones como driver principal
 
 A leitura de abertura do WIN foi ajustada para dar maior peso ao **Dow Jones** do que ao S&P 500. A estimativa visual da abertura usa um composto de 70% Dow, 20% S&P 500 e 10% Nasdaq, com renormalização quando houver dados ausentes. No contexto global do painel, o composto também usa Dow Jones 30%, S&P 500 15%, Nasdaq 15%, EEM 15%, DXY 12,5% e VIX 12,5%, com renormalização dos pesos disponíveis. O score operacional também passou a ponderar DJI acima de SP500 nos componentes WIN e WDO.
+
+## Ajuste da referência "Abertura WIN" do painel principal
+
+O card superior **Abertura WIN** passou a usar a referência simples solicitada para operação intraday:
+
+```text
+Abertura WIN = WINFUT atual × (1 + variação do S&P 500 Futuro / 100)
+```
+
+- `WINFUT atual`: prioridade para a captura `CONFIG_CAPTURA` do Excel/Profit via ponte COM; depois o `COTACOES.xlsm` salvo; por último, a última captura salva no banco.
+- `S&P 500 Futuro`: prioridade para `SP500_FUT` na `CONFIG_CAPTURA`; na ausência, a coleta usa a página **S&P 500 Futuros** do Investing.com.
+- S&P positivo aumenta a referência; S&P negativo reduz a referência.
+- A referência não é uma previsão estatística e não altera o modelo multifatorial detalhado exibido abaixo do card.

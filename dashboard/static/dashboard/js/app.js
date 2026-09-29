@@ -208,7 +208,32 @@
 
     let latestRealEurUsdParity = null;
 
-    function calculateFrp0Parity() {
+    function renderFrp0DashboardCard(profitExcel = {}) {
+        const frp0Node = byId("qFRP0_CARD");
+        const sourceNode = byId("cFRP0_CARD");
+        const fairNode = byId("qFRP0_FAIR");
+
+        if (!frp0Node || !sourceNode || !fairNode) {
+            return;
+        }
+
+        const frp0 = toNumeric(profitExcel?.frp0_points);
+        const fair = frp0 !== null && latestRealEurUsdParity !== null
+            ? (latestRealEurUsdParity * 1000) + frp0
+            : null;
+
+        frp0Node.textContent = frp0 === null ? "N/D" : number(frp0, 3);
+        fairNode.textContent = fair === null ? "N/D" : number(fair, 3);
+
+        const source = profitExcel?.frp0_source || "Excel / Profit";
+        const sheet = profitExcel?.frp0_sheet || "CONFIG_CAPTURA";
+        const cell = profitExcel?.frp0_cell || "B37";
+        sourceNode.textContent = `${source} · ${sheet}!${cell}`;
+        sourceNode.className = frp0 === null ? "error" : "";
+        fairNode.className = fair === null ? "error" : "";
+    }
+
+    function calculateFrp0Parity(frp0Override = null) {
         const input = byId("frp0Input");
         const result = byId("frp0Result");
 
@@ -216,7 +241,13 @@
             return;
         }
 
-        const frp0 = toNumeric(input.value);
+        const frp0 = frp0Override === null
+            ? toNumeric(input.value)
+            : toNumeric(frp0Override);
+
+        if (frp0Override !== null && frp0 !== null) {
+            input.value = number(frp0, 3);
+        }
 
         result.className = "frp0-result";
 
@@ -239,7 +270,7 @@
          * Exemplo: 5162,9 + 36,80 = 5199,70.
          */
         const total = (latestRealEurUsdParity * 1000) + frp0;
-        result.textContent = `Paridade + FRP0: ${number(total, 2)}`;
+        result.textContent = `Dólar justo: ${number(total, 3)}`;
         result.classList.add("has-value");
     }
 
@@ -260,7 +291,7 @@
         });
     }
 
-    function renderWinOpeningEstimate(quotes) {
+    function renderWinOpeningEstimate(quotes, profitExcel = {}) {
         const valueNode = byId("qWIN_OPENING");
         const detailNode = byId("cWIN_OPENING");
 
@@ -268,65 +299,57 @@
             return;
         }
 
-        const ibovClose = toNumeric(quotes?.IBOV?.value);
-        const dowChange = toNumeric(quotes?.DJI?.change_percent);
-        const sp500Change = toNumeric(quotes?.SP500?.change_percent);
-        const nasdaqChange = toNumeric(quotes?.NASDAQ?.change_percent);
-
-        // Driver principal: Dow Jones. S&P 500 e Nasdaq entram somente
-        // como confirmações secundárias para reduzir dependência de um
-        // único índice americano. Pesos somam 100%.
-        const usChanges = [
-            { value: dowChange, weight: 0.70 },
-            { value: sp500Change, weight: 0.20 },
-            { value: nasdaqChange, weight: 0.10 },
-        ].filter(item => item.value !== null);
-
-        const availableWeight = usChanges.reduce(
-            (sum, item) => sum + item.weight,
-            0
+        const liveModel = profitExcel?.win_opening || {};
+        const winfut = toNumeric(
+            profitExcel?.winfut_points ??
+            liveModel?.winfut_points ??
+            quotes?.WINFUT?.value
         );
-        const weightedUsChange = availableWeight > 0
-            ? usChanges.reduce(
-                (sum, item) => sum + (item.value * item.weight),
-                0
-            ) / availableWeight
-            : null;
+        const sp500FutureChange = toNumeric(
+            profitExcel?.sp500_futures_change_percent ??
+            liveModel?.sp500_futures_change_percent ??
+            quotes?.SP500_FUT?.change_percent
+        );
 
-        if (ibovClose === null || weightedUsChange === null) {
+        if (winfut === null || sp500FutureChange === null) {
             valueNode.textContent = "N/D";
             detailNode.textContent =
-                "Aguardando Ibovespa e Dow Jones (driver principal)";
+                "Aguardando WINFUT e variação do S&P 500 Futuro";
             detailNode.className = "";
             return;
         }
 
-        /*
-         * Estimativa da abertura do WIN:
-         * fechamento do Ibovespa ajustado por um composto das bolsas dos EUA,
-         * com 70% de peso no Dow Jones, 20% no S&P 500 e 10% no Nasdaq.
-         * Quando algum componente não estiver disponível, os pesos
-         * disponíveis são renormalizados.
-         */
         const estimatedOpening =
-            ibovClose * (1 + (weightedUsChange / 100));
+            liveModel?.value != null
+                ? toNumeric(liveModel.value)
+                : winfut * (1 + (sp500FutureChange / 100));
 
-        valueNode.textContent = number(
-            estimatedOpening,
-            3
-        );
+        if (estimatedOpening === null) {
+            valueNode.textContent = "N/D";
+            detailNode.textContent =
+                "Não foi possível calcular a referência com os dados atuais";
+            detailNode.className = "";
+            return;
+        }
+
+        valueNode.textContent = number(estimatedOpening, 3);
+
+        const signal = sp500FutureChange > 0 ? "+" : "";
+        const operator = sp500FutureChange >= 0 ? "+" : "−";
+        const winSource = profitExcel?.winfut_source || "WINFUT";
+        const spSource = profitExcel?.sp500_futures_source || "S&P 500 Futuro";
 
         detailNode.textContent =
-            `Fech. IBOV: ${number(ibovClose, 3)} · Dow: ${percent(dowChange)} · S&P: ${percent(sp500Change)} · Nasdaq: ${percent(nasdaqChange)} · Composto EUA: ${percent(weightedUsChange)}`;
+            `WINFUT: ${number(winfut, 3)} · S&P Fut: ${signal}${number(sp500FutureChange, 2)}% · ${operator} ajuste proporcional · ${winSource} + ${spSource}`;
 
-        detailNode.className = weightedUsChange > 0
+        detailNode.className = sp500FutureChange > 0
             ? "positive"
-            : weightedUsChange < 0
+            : sp500FutureChange < 0
                 ? "negative"
                 : "";
     }
 
-    function renderQuotes(quotes) {
+    function renderQuotes(quotes, profitExcel = {}) {
         renderQuote(
             "USD_BRL",
             quotes.USD_BRL,
@@ -341,6 +364,18 @@
 
         latestRealEurUsdParity =
             toNumeric(quotes.REAL_EUR_USD_PARITY?.value);
+
+        const frp0 = toNumeric(profitExcel?.frp0_points);
+        if (frp0 !== null && latestRealEurUsdParity !== null) {
+            calculateFrp0Parity(frp0);
+        } else if (frp0 === null) {
+            const input = byId("frp0Input");
+            if (input) {
+                input.value = "";
+            }
+        }
+
+        renderFrp0DashboardCard(profitExcel);
 
         renderQuote(
             "DOL_FUT",
@@ -360,7 +395,7 @@
             3
         );
 
-        renderWinOpeningEstimate(quotes);
+        renderWinOpeningEstimate(quotes, profitExcel);
 
         renderQuote(
             "EWZ",
@@ -1580,7 +1615,8 @@
 
     function renderDashboard(data) {
         renderQuotes(
-            data.quotes || {}
+            data.quotes || {},
+            data.profit_excel || {}
         );
 
         renderAnalysis(
