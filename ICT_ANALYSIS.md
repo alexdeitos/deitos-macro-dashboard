@@ -1,74 +1,185 @@
 # ICT Analysis — WINFUT 5m
 
-A aba **ICT Analysis** recebe o CSV exportado do Profit e constrói uma leitura objetiva de price action no gráfico de 5 minutos.
+A aba **ICT Analysis** lê candles de 5 minutos exportados do Profit e transforma o histórico em um mapa de price delivery com foco em **liquidez → sweep → displacement → MSS/BOS → POI → retorno**.
 
-## Entrada esperada
+## Entrada
 
-CSV com:
+O CSV do Profit deve conter:
 
-- Ativo
-- Data
-- Hora
-- Abertura
-- Máximo
-- Mínimo
-- Fechamento
+- `Ativo`
+- `Data`
+- `Hora`
+- `Abertura`
+- `Máximo`
+- `Mínimo`
+- `Fechamento`
 
-`Volume` e `Quantidade` podem existir e são preservados pelo arquivo de origem, mas não são necessários para a primeira camada do motor ICT.
+`Volume` e `Quantidade` são opcionais.
 
-## Objetos
+A aba tem duas formas de carregar o arquivo:
 
-### Liquidez
-- Máxima e mínima do dia.
-- PDH/PDL quando o arquivo contém o pregão anterior.
-- Swing Highs / Swing Lows.
-- Equal Highs / Equal Lows agrupados por tolerância de 2 ticks.
+1. **Carregar data/**: usa automaticamente o CSV mais recente da pasta `data/`, priorizando arquivos cujo nome contenha `WIN`.
+2. **Upload manual**: seleciona diretamente um CSV exportado do Profit.
 
-### FVG
-Identificação de desequilíbrio de 3 candles:
-- Bullish FVG: Low do terceiro candle acima do High do primeiro.
-- Bearish FVG: High do terceiro candle abaixo do Low do primeiro.
-- A zona é marcada como mitigada quando o preço posterior atravessa o extremo oposto da zona.
+## Hierarquia da análise
 
-### Sweep
-- Buy-side liquidity sweep: preço supera um swing high e fecha novamente abaixo dele.
-- Sell-side liquidity sweep: preço perde um swing low e fecha novamente acima dele.
+O motor não considera qualquer FVG/OB como oportunidade equivalente. Ele procura uma sequência estrutural:
 
-### MSS
-Após um sweep recente, o motor procura fechamento além do swing oposto. Isso cria um evento de mudança de estrutura (MSS) para fins de classificação.
+```text
+Liquidez / pool
+        ↓
+      Sweep
+        ↓
+   Displacement
+        ↓
+      MSS/BOS
+        ↓
+ FVG / Order Block
+        ↓
+ retorno à região
+        ↓
+ confirmação de preço
+```
 
-### Order Block
-O motor procura, nos cinco candles anteriores ao MSS, o último candle contrário ao deslocamento:
-- MSS bullish → último candle bearish.
-- MSS bearish → último candle bullish.
+Um retorno à zona não vira ordem automática.
 
-A zona do OB é o range completo do candle identificado.
+## Swings
 
-### Premium / Discount
-Como referência transparente, a aba usa o 50% da máxima/mínima do próprio dia:
-- acima de 50% = Premium;
-- abaixo de 50% = Discount.
+Swing High e Swing Low são confirmados com 2 candles de cada lado. Essa estrutura é usada para localizar níveis que podem servir como liquidez interna.
 
-## Condição de possível setup
+## Liquidez
 
-O sistema **não transforma FVG/OB isolado em entrada**.
+O mapa trabalha com:
 
-Um possível setup precisa de:
-1. POI não mitigado;
-2. último MSS compatível com a direção do POI;
-3. se o preço estiver dentro/próximo do POI: `POI ATIVADO — aguardar confirmação`;
-4. se estiver distante: `AGUARDANDO RETORNO AO POI`.
+- Equal Highs e Equal Lows agrupados por até 2 ticks;
+- máxima e mínima da sessão selecionada;
+- PDH e PDL quando existe pelo menos um pregão anterior dentro do CSV;
+- classificação interna/externa;
+- distância do preço atual;
+- força relativa baseada no tipo de pool e número de toques.
 
-A confirmação final não é automatizada como ordem. O objetivo é apresentar contexto e região para validação no gráfico.
+Os níveis são **possíveis pools de liquidez**, não prova de ordens stop escondidas.
 
-## Escala
+## Sweep
 
-Algumas exportações do Profit aparecem com WIN em torno de `184,69`, enquanto a leitura operacional costuma ser `184.690`. O motor mantém os cálculos na escala original e, quando detecta preços abaixo de 1.000, exibe multiplicados por 1.000.
+Um sweep é marcado quando o preço atravessa uma pool de liquidez e o candle fecha novamente para dentro do nível:
 
-## Uso
+- BSL acima do nível e fechamento abaixo → sweep de buy-side;
+- SSL abaixo do nível e fechamento acima → sweep de sell-side.
 
-1. Exporte o histórico de WINFUT em 5 minutos no Profit.
-2. Abra `ICT Analysis`.
-3. Selecione o CSV.
-4. Clique em `Analisar ICT`.
-5. Escolha outro dia no seletor para recalcular sem reenviar o arquivo.
+O motor evita contar repetidamente o mesmo pool.
+
+## Displacement
+
+Um candle é tratado como displacement quando seu range é pelo menos 1,35x a média recente e o corpo representa pelo menos 55% do range.
+
+O displacement é usado como filtro para reduzir FVGs pequenos/isolados e para ligar estrutura a zonas relevantes.
+
+## MSS e BOS
+
+Depois de um sweep recente, o motor procura fechamento além do swing oposto:
+
+- quebra contrária ao viés estrutural vigente → **MSS**;
+- quebra na mesma direção do viés vigente → **BOS**.
+
+Assim o painel diferencia mudança de estrutura de continuação.
+
+## Fair Value Gap
+
+FVG é detectado pelo padrão de três candles:
+
+- bullish: `Low[3] > High[1]`;
+- bearish: `High[3] < Low[1]`.
+
+Os FVGs passam por um filtro de relevância. São priorizados quando ligados a displacement, sweep ou MSS, ou quando o gap tem tamanho material frente ao range médio.
+
+Estados:
+
+- `OPEN`: ainda não tocado;
+- `PARTIAL`: houve retorno/interseção, mas o gap não foi completamente preenchido;
+- `FILLED`: o extremo oposto do gap foi atravessado.
+
+## Order Block
+
+Para reduzir falsos OBs, o motor procura o **último candle contrário imediatamente antes de MSS ou de um BOS com displacement**.
+
+Estados:
+
+- `OPEN`: não mitigado;
+- `PARTIAL/FILLED`: o preço voltou à zona;
+- `INVALIDATED`: houve fechamento além do limite do OB.
+
+Apenas OBs ligados a eventos estruturais entram na lista principal.
+
+## Premium / Discount
+
+A sessão selecionada é dividida pelo 50% entre máxima e mínima:
+
+- acima de 50% → `PREMIUM`;
+- abaixo de 50% → `DISCOUNT`;
+- próximo do centro → `EQUILIBRIUM`.
+
+O filtro P/D é usado como confluência, sem criar entrada por si só.
+
+## POIs prioritários
+
+A lista principal é ordenada pela combinação de:
+
+- Fresh/Open;
+- relação com sweep;
+- relação com MSS;
+- displacement;
+- alinhamento Premium/Discount;
+- recência;
+- distância ao preço.
+
+Isso faz com que o gráfico destaque **poucas regiões relevantes**, em vez de preencher toda a tendência com FVGs antigos.
+
+## Possíveis cenários
+
+Um cenário condicional exige:
+
+- POI ativo;
+- viés estrutural compatível;
+- pelo menos duas confluências;
+- retorno próximo ou dentro da zona para ativação.
+
+Quando ainda está distante:
+
+`AGUARDANDO RETORNO AO POI`
+
+Quando entra na região:
+
+`POI ATIVADO — aguardar confirmação`
+
+O painel ainda informa invalidação e a primeira liquidez disponível no sentido do cenário como referência de contexto. Isso não constitui execução automática nem garantia de resultado.
+
+## Gráfico
+
+O mapa mostra:
+
+- candles reais de 5 minutos;
+- FVGs e OBs prioritários projetados para a direita;
+- liquidez selecionada;
+- PDH/PDL quando disponíveis;
+- máxima/mínima do dia;
+- EQ 50%;
+- sweep;
+- MSS/BOS;
+- swings opcionais.
+
+Há controles para exibir/ocultar zonas mitigadas, swings e liquidez.
+
+## Escala do WIN
+
+Alguns CSVs podem trazer `184.690`, enquanto outros sistemas trabalham com `184,690` pontos. O parser normaliza arquivos que chegam em escala decimal para a escala operacional de pontos, evitando a distorção da leitura no gráfico.
+
+## Uso diário
+
+1. Exporte o WINFUT em 5 minutos no Profit.
+2. Salve o CSV em `data/` ou use o upload manual.
+3. Abra **ICT Analysis**.
+4. O botão **Carregar data/** pode ler automaticamente o CSV mais recente.
+5. Escolha a data quando o arquivo tiver mais de um pregão.
+6. Leia primeiro o bloco de contexto e a sequência `Sweep → MSS/BOS → POI`.
+7. Use o gráfico para validar visualmente o contexto antes de qualquer execução.

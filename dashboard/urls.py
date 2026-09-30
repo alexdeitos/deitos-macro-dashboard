@@ -32,6 +32,7 @@ urlpatterns = [
     path("api/fed-analysis/refresh/", fed_views.api_fed_refresh, name="api_fed_refresh"),
     path("api/radar-indice/", capture_views.api_index_radar, name="api_index_radar"),
     path("api/ict-analysis/", ict_views.api_ict_analysis, name="api_ict_analysis"),
+    path("api/ict-analysis/auto/", ict_views.api_ict_analysis_auto, name="api_ict_analysis_auto"),
     path("api/radar-indice/refresh/", capture_views.api_index_radar_refresh, name="api_index_radar_refresh"),
     path("api/capturas/import/", capture_views.api_import_captures, name="api_import_captures"),
     path("api/capturas/ingest/", capture_views.api_ingest_captures, name="api_ingest_captures"),

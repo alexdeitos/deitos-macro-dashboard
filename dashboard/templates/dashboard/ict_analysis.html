@@ -11,9 +11,9 @@
 {% block content %}
 <section class="ict-header panel">
     <div>
-        <div class="eyebrow">PRICE ACTION / 5 MIN</div>
+        <div class="eyebrow">ICT / 5 MIN / PRICE DELIVERY</div>
         <h1>ICT Analysis</h1>
-        <p class="muted">Leitura objetiva de liquidez, FVG, Order Blocks, sweeps, MSS e Premium/Discount a partir do CSV exportado do Profit.</p>
+        <p class="muted">Mapa objetivo de liquidez, sweep, deslocamento, MSS/BOS, FVG e Order Blocks. O motor hierarquiza POIs e só cria cenário condicional quando há contexto estrutural compatível.</p>
     </div>
     <div class="ict-controls">
         <label class="file-picker">
@@ -24,51 +24,87 @@
             <span>Data</span>
             <select id="ictDate" disabled><option value="">Último dia disponível</option></select>
         </label>
+        <button id="ictAutoLoad" class="button secondary" type="button">Carregar data/</button>
         <button id="ictAnalyze" class="button" type="button">Analisar ICT</button>
     </div>
 </section>
 
 <div id="ictMessage" class="message warning" hidden></div>
 
+<section class="ict-context-grid">
+    <div class="panel ict-context-card">
+        <div class="eyebrow">STRUCTURE</div>
+        <strong id="ictStructure">—</strong>
+        <span id="ictStructureDetail">Aguardando análise</span>
+    </div>
+    <div class="panel ict-context-card">
+        <div class="eyebrow">LAST SWEEP</div>
+        <strong id="ictLastSweep">—</strong>
+        <span id="ictLastSweepDetail">—</span>
+    </div>
+    <div class="panel ict-context-card">
+        <div class="eyebrow">LAST MSS / BOS</div>
+        <strong id="ictLastMss">—</strong>
+        <span id="ictLastMssDetail">—</span>
+    </div>
+    <div class="panel ict-context-card">
+        <div class="eyebrow">DELIVERY</div>
+        <strong id="ictDelivery">—</strong>
+        <span id="ictDeliveryDetail">—</span>
+    </div>
+</section>
+
 <section class="cards ict-cards">
     <div class="card"><span>Preço atual</span><strong id="ictCurrent">—</strong><small id="ictLocation">—</small></div>
-    <div class="card"><span>FVG aberto</span><strong id="ictFvg">—</strong><small>zonas detectadas</small></div>
-    <div class="card"><span>Order Blocks</span><strong id="ictOb">—</strong><small>não mitigados</small></div>
-    <div class="card"><span>Liquidez</span><strong id="ictLiquidity">—</strong><small>pools de equal highs/lows</small></div>
-    <div class="card"><span>Sweeps</span><strong id="ictSweeps">—</strong><small>liquidez varrida</small></div>
-    <div class="card"><span>MSS</span><strong id="ictMss">—</strong><small>mudanças de estrutura</small></div>
-    <div class="card"><span>Máxima do dia</span><strong id="ictHigh">—</strong><small>BSL</small></div>
-    <div class="card"><span>Mínima do dia</span><strong id="ictLow">—</strong><small>SSL</small></div>
+    <div class="card"><span>FVG fresh</span><strong id="ictFvg">—</strong><small id="ictFvgSub">—</small></div>
+    <div class="card"><span>OB fresh</span><strong id="ictOb">—</strong><small id="ictObSub">—</small></div>
+    <div class="card"><span>Liquidez</span><strong id="ictLiquidity">—</strong><small id="ictLiquiditySub">equal highs/lows</small></div>
+    <div class="card"><span>Sweeps</span><strong id="ictSweeps">—</strong><small>durante a sessão</small></div>
+    <div class="card"><span>MSS / BOS</span><strong id="ictMss">—</strong><small id="ictMssSub">—</small></div>
+    <div class="card"><span>Máxima do dia</span><strong id="ictHigh">—</strong><small>BSL futura</small></div>
+    <div class="card"><span>Mínima do dia</span><strong id="ictLow">—</strong><small>SSL futura</small></div>
 </section>
 
 <section class="panel">
     <div class="section-head">
         <div>
             <div class="eyebrow">ICT PRICE MAP</div>
-            <h2 id="chartTitle">Envie o CSV do Profit para iniciar</h2>
+            <h2 id="chartTitle">Carregando…</h2>
         </div>
-        <div id="ictStatus" class="status neutral">Aguardando arquivo</div>
+        <div class="chart-options">
+            <label><input id="showHistory" type="checkbox"> mostrar zonas mitigadas</label>
+            <label><input id="showSwings" type="checkbox" checked> mostrar swings</label>
+            <label><input id="showLiquidity" type="checkbox" checked> mostrar liquidez</label>
+            <div id="ictStatus" class="status neutral">Aguardando arquivo</div>
+        </div>
     </div>
     <div id="ictChart" class="ict-chart"></div>
     <div class="legend">
-        <span><i class="legend-box fvg-bull"></i> Bullish FVG</span>
-        <span><i class="legend-box fvg-bear"></i> Bearish FVG</span>
-        <span><i class="legend-box ob-bull"></i> Bullish OB</span>
-        <span><i class="legend-box ob-bear"></i> Bearish OB</span>
+        <span><i class="legend-box fvg-bull"></i> FVG bullish</span>
+        <span><i class="legend-box fvg-bear"></i> FVG bearish</span>
+        <span><i class="legend-box ob-bull"></i> OB bullish</span>
+        <span><i class="legend-box ob-bear"></i> OB bearish</span>
         <span><i class="legend-line liquidity"></i> Liquidez</span>
         <span><i class="legend-line sweep"></i> Sweep</span>
         <span><i class="legend-line mss"></i> MSS</span>
+        <span><i class="legend-line bos"></i> BOS</span>
     </div>
 </section>
 
 <div class="grid two">
     <section class="panel">
-        <div class="section-head"><div><div class="eyebrow">POINTS OF INTEREST</div><h2>Regiões de interesse</h2></div></div>
+        <div class="section-head">
+            <div><div class="eyebrow">PRIORITY POI</div><h2>Regiões de interesse</h2></div>
+            <span class="section-note">priorizadas por contexto</span>
+        </div>
         <div id="ictPois" class="poi-list"><div class="empty-state">Nenhuma análise carregada.</div></div>
     </section>
     <section class="panel">
-        <div class="section-head"><div><div class="eyebrow">CONDITIONAL SETUPS</div><h2>Possíveis setups</h2></div></div>
-        <div id="ictCandidates" class="candidate-list"><div class="empty-state">Nenhum setup condicionado identificado.</div></div>
+        <div class="section-head">
+            <div><div class="eyebrow">CONDITIONAL SETUPS</div><h2>Possíveis cenários</h2></div>
+            <span class="section-note">sem entrada automática</span>
+        </div>
+        <div id="ictCandidates" class="candidate-list"><div class="empty-state">Nenhum cenário condicionado identificado.</div></div>
     </section>
 </div>
 
@@ -78,10 +114,15 @@
         <div id="ictLiquidityList" class="table-wrap"></div>
     </section>
     <section class="panel">
-        <div class="section-head"><div><div class="eyebrow">STRUCTURE</div><h2>Eventos estruturais</h2></div></div>
+        <div class="section-head"><div><div class="eyebrow">STRUCTURE LOG</div><h2>Sequência de eventos</h2></div></div>
         <div id="ictEvents" class="event-list"></div>
     </section>
 </div>
+
+<section class="panel">
+    <div class="section-head"><div><div class="eyebrow">SESSION CONTEXT</div><h2>Mapa de contexto</h2></div></div>
+    <div id="ictContextTable" class="context-table"></div>
+</section>
 
 <section class="panel methodology">
     <div class="section-head"><div><div class="eyebrow">TRANSPARÊNCIA</div><h2>Regras utilizadas pelo motor</h2></div></div>
